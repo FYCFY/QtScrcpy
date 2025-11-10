@@ -8,7 +8,7 @@
 
 namespace qsc
 {
-    class IDeviceManage;
+    class IDevice;
 }
 
 class VideoForm;
