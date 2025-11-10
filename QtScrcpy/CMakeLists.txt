@@ -176,6 +176,8 @@ source_group(autocast FILES ${QC_AUTOCAST_SOURCES})
 set(QC_UTIL_SOURCES
     util/config.h
     util/config.cpp
+    util/adbpathresolver.h
+    util/adbpathresolver.cpp
     util/mousetap/mousetap.h
     util/mousetap/mousetap.cpp
     util/serverpathresolver.h

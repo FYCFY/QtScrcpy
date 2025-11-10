@@ -40,7 +40,6 @@ private:
     void updateActiveDeviceList(const QSet<QString> &serials);
     QStringList collectDeviceInfo(const QString &serial);
     QString runAdbCommandSync(const QStringList &args, int timeoutMs = 3000) const;
-    QString adbExecutablePath() const;
     QString readDeviceProperty(const QString &serial, const QString &prop);
     quint16 resolveMaxSize() const;
     QString resolveRecordFormat() const;

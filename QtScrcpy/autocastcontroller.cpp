@@ -1,8 +1,6 @@
 #include "autocastcontroller.h"
 
-#include <QCoreApplication>
 #include <QDebug>
-#include <QFileInfo>
 #include <QProcess>
 #include <QRandomGenerator>
 #include <QRect>
@@ -11,6 +9,7 @@
 #include <algorithm>
 
 #include "serverpathresolver.h"
+#include "util/adbpathresolver.h"
 #include "videoform.h"
 
 // Auto detection mirrors the behaviour from scrcpy_FYC/scrcpy.c (periodic adb polling
@@ -223,7 +222,7 @@ QString AutoCastController::readDeviceProperty(const QString &serial, const QStr
 
 QString AutoCastController::runAdbCommandSync(const QStringList &args, int timeoutMs) const
 {
-    const QString adb = adbExecutablePath();
+    const QString adb = resolveAdbExecutable();
     if (adb.isEmpty()) {
         return {};
     }
@@ -243,25 +242,6 @@ QString AutoCastController::runAdbCommandSync(const QStringList &args, int timeo
         return {};
     }
     return QString::fromLocal8Bit(process.readAllStandardOutput()).trimmed();
-}
-
-QString AutoCastController::adbExecutablePath() const
-{
-    QString path = Config::getInstance().getAdbPath();
-    if (path.isEmpty()) {
-        const QByteArray env = qgetenv("QTSCRCPY_ADB_PATH");
-        if (!env.isEmpty()) {
-            path = QString::fromLocal8Bit(env);
-        } else {
-            const QString bundled = QCoreApplication::applicationDirPath() + "/adb";
-            path = QFileInfo::exists(bundled) ? bundled : QStringLiteral("adb");
-        }
-    }
-    QFileInfo info(path);
-    if (!info.exists() && !path.contains('/')) {
-        return QStringLiteral("adb");
-    }
-    return path;
 }
 
 quint16 AutoCastController::resolveMaxSize() const
