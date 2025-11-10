@@ -282,13 +282,19 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/../output/${QC_CPU_ARCH}/${CMAKE_BUILD_TYPE}/$<0:>"
 )
 
+get_target_property(QSC_BIN_OUTPUT_PATH ${PROJECT_NAME} RUNTIME_OUTPUT_DIRECTORY)
+if(NOT QSC_BIN_OUTPUT_PATH)
+    set(QSC_BIN_OUTPUT_PATH "${CMAKE_CURRENT_BINARY_DIR}")
+endif()
+set(QSC_DEPLOY_PATH ${QSC_BIN_OUTPUT_PATH})
+
 #
 # plantform deps
 #
 
 # windows
 if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
-    # no platform-specific artifacts to copy
+    set(QSC_DEPLOY_PATH ${QSC_BIN_OUTPUT_PATH})
 endif()
 
 # MacOS
@@ -299,6 +305,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
     # copy bundle file
     get_target_property(MACOS_BUNDLE_PATH ${PROJECT_NAME} RUNTIME_OUTPUT_DIRECTORY)
     set(MACOS_BUNDLE_PATH ${MACOS_BUNDLE_PATH}/${PROJECT_NAME}.app/Contents)
+    set(QSC_DEPLOY_PATH ${MACOS_BUNDLE_PATH})
 
     add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
         # config file copy to Contents/MacOS/config
@@ -329,6 +336,7 @@ endif()
 
 # Linux
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    set(QSC_DEPLOY_PATH ${QSC_BIN_OUTPUT_PATH})
     set(THREADS_PREFER_PTHREAD_FLAG ON)
     find_package(Threads REQUIRED)
 
