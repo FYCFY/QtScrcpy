@@ -22,23 +22,6 @@ QString resolveAdbBinary()
         if (!env.isEmpty()) {
             path = QString::fromLocal8Bit(env);
         } else {
-            path = QStringLiteral("adb");
-        }
-    }
-    return path;
-}
-}
-
-namespace
-{
-QString resolveAdbBinary()
-{
-    QString path = Config::getInstance().getAdbPath();
-    if (path.isEmpty()) {
-        const QByteArray env = qgetenv("QTSCRCPY_ADB_PATH");
-        if (!env.isEmpty()) {
-            path = QString::fromLocal8Bit(env);
-        } else {
             // relative to executable during development
             QString fallback = QCoreApplication::applicationDirPath() + "/adb";
             if (QFileInfo::exists(fallback)) {
