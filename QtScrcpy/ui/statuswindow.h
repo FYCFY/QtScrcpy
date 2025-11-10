@@ -1,6 +1,7 @@
 #ifndef STATUSWINDOW_H
 #define STATUSWINDOW_H
 
+#include <QMap>
 #include <QWidget>
 #include <QStringList>
 
@@ -16,16 +17,18 @@ public:
     explicit StatusWindow(QWidget *parent = nullptr);
 
 public slots:
-    void appendLog(const QString &message);
     void setActiveDevices(const QStringList &devices);
+    void updateDeviceInfo(const QString &serial, const QStringList &infoLines);
 
 protected:
     void closeEvent(QCloseEvent *event) override;
 
 private:
+    void rebuildInfoPanel();
     QListWidget *m_deviceList = nullptr;
     QPlainTextEdit *m_logView = nullptr;
     QLabel *m_summaryLabel = nullptr;
+    QMap<QString, QStringList> m_deviceInfo;
 };
 
 #endif // STATUSWINDOW_H

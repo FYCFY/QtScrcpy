@@ -4,6 +4,7 @@
 #include <QPointer>
 #include <QList>
 #include <QWidget>
+#include <QStringList>
 #include <functional>
 
 namespace qsc
@@ -28,6 +29,7 @@ protected:
 
 private:
     void invoke(const std::function<void(class qsc::IDevice*)> &operation);
+    void runAdbDetached(const QStringList &args);
     void buildUi();
 
     QPointer<VideoForm> m_videoForm;

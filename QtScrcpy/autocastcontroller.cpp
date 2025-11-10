@@ -1,6 +1,7 @@
 #include "autocastcontroller.h"
 
 #include <QDebug>
+#include <QProcess>
 #include <QRandomGenerator>
 #include <QRect>
 #include <QStringList>
@@ -182,6 +183,73 @@ void AutoCastController::updateActiveDeviceList(const QSet<QString> &serials)
     m_lastDeviceListEmpty = emptyNow;
 }
 
+QStringList AutoCastController::collectDeviceInfo(const QString &serial)
+{
+    QStringList details;
+
+    auto addLine = [&](const QString &label, const QString &value) {
+        const QString text = value.trimmed().isEmpty() ? tr("未知") : value.trimmed();
+        details << QStringLiteral("%1: %2").arg(label, text);
+    };
+
+    addLine(tr("设备代号"), readDeviceProperty(serial, "ro.product.device"));
+    addLine(tr("设备型号"), readDeviceProperty(serial, "ro.product.model"));
+    addLine(tr("安卓版本"), readDeviceProperty(serial, "ro.build.version.release"));
+
+    QString slot = readDeviceProperty(serial, "ro.boot.slot_suffix");
+    if (slot.trimmed().isEmpty()) {
+        slot = tr("未分区");
+    }
+    addLine(tr("活动卡槽"), slot);
+
+    const QString blValue = readDeviceProperty(serial, "ro.boot.flash.locked");
+    QString blText = blValue.trimmed() == QStringLiteral("0") ? tr("已解锁") : tr("未解锁");
+    addLine(tr("BL 锁状态"), blText);
+
+    return details;
+}
+
+QString AutoCastController::readDeviceProperty(const QString &serial, const QString &prop)
+{
+    QStringList args;
+    if (!serial.isEmpty()) {
+        args << "-s" << serial;
+    }
+    args << "shell" << "getprop" << prop;
+    return runAdbCommandSync(args);
+}
+
+QString AutoCastController::runAdbCommandSync(const QStringList &args, int timeoutMs) const
+{
+    const QString adb = adbExecutablePath();
+    if (adb.isEmpty()) {
+        return {};
+    }
+
+    QProcess process;
+    process.start(adb, args);
+    if (!process.waitForFinished(timeoutMs)) {
+        process.kill();
+        process.waitForFinished();
+        return {};
+    }
+    return QString::fromLocal8Bit(process.readAllStandardOutput()).trimmed();
+}
+
+QString AutoCastController::adbExecutablePath() const
+{
+    QString path = Config::getInstance().getAdbPath();
+    if (path.isEmpty()) {
+        const QByteArray env = qgetenv("QTSCRCPY_ADB_PATH");
+        if (!env.isEmpty()) {
+            path = QString::fromLocal8Bit(env);
+        } else {
+            path = QStringLiteral("adb");
+        }
+    }
+    return path;
+}
+
 quint16 AutoCastController::resolveMaxSize() const
 {
     static const quint16 sizes[] = {640, 720, 1080, 1280, 1920, 0};
@@ -247,6 +315,7 @@ void AutoCastController::onDeviceConnected(bool success, const QString &serial, 
     const QString info = tr("Mirroring %1 (%2x%3)").arg(serial).arg(size.width()).arg(size.height());
     qInfo() << info;
     emit logMessage(info);
+    emit deviceInfoReady(serial, collectDeviceInfo(serial));
 }
 
 void AutoCastController::onDeviceDisconnected(const QString &serial)
@@ -256,4 +325,3 @@ void AutoCastController::onDeviceDisconnected(const QString &serial)
     m_castingSerials.remove(serial);
     cleanupVideoForm(serial);
 }
-#include <algorithm> // already at top? yes.

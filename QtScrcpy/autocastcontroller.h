@@ -24,6 +24,7 @@ public:
 signals:
     void logMessage(const QString &message);
     void activeDevicesChanged(const QStringList &devices);
+    void deviceInfoReady(const QString &serial, const QStringList &info);
 
 private slots:
     void queryDevices();
@@ -37,6 +38,10 @@ private:
     void cleanupVideoForm(const QString &serial);
     void ensureVideoForm(const QString &serial, const QSize &size);
     void updateActiveDeviceList(const QSet<QString> &serials);
+    QStringList collectDeviceInfo(const QString &serial);
+    QString runAdbCommandSync(const QStringList &args, int timeoutMs = 3000) const;
+    QString adbExecutablePath() const;
+    QString readDeviceProperty(const QString &serial, const QString &prop);
     quint16 resolveMaxSize() const;
     QString resolveRecordFormat() const;
     qsc::DeviceParams buildParams(const QString &serial);
