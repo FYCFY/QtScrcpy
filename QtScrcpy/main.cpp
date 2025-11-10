@@ -6,16 +6,14 @@
 #include <QIcon>
 #endif
 #include <QSurfaceFormat>
-#include <QTcpServer>
-#include <QTcpSocket>
 #include <QTranslator>
 #include <QDateTime>
 
 #include "config.h"
-#include "dialog.h"
 #include "mousetap/mousetap.h"
+#include "autocastcontroller.h"
+#include "statuswindow.h"
 
-static Dialog *g_mainDlg = Q_NULLPTR;
 static QtMessageHandler g_oldMessageHandler = Q_NULLPTR;
 void myMessageOutput(QtMsgType type, const QMessageLogContext &context, const QString &msg);
 void installTranslator();
@@ -92,6 +90,7 @@ int main(int argc, char *argv[])
 
     g_oldMessageHandler = qInstallMessageHandler(myMessageOutput);
     QApplication a(argc, argv);
+    QApplication::setQuitOnLastWindowClosed(false);
 
     // Set application icon for Linux (taskbar icon)
 #ifdef Q_OS_LINUX
@@ -131,23 +130,19 @@ int main(int argc, char *argv[])
 
     qsc::AdbProcess::setAdbPath(Config::getInstance().getAdbPath());
 
-    g_mainDlg = new Dialog {};
-    g_mainDlg->show();
+    StatusWindow statusWindow;
+    statusWindow.show();
 
-    qInfo() << QObject::tr("This software is completely open source and free. Use it at your own risk. You can download it at the "
-            "following address:");
-    qInfo() << QString("QtScrcpy %1 <https://github.com/barry-ran/QtScrcpy>").arg(QCoreApplication::applicationVersion());
+    AutoCastController autoController(&a);
+    QObject::connect(&autoController, &AutoCastController::logMessage,
+                     &statusWindow, &StatusWindow::appendLog);
+    QObject::connect(&autoController, &AutoCastController::activeDevicesChanged,
+                     &statusWindow, &StatusWindow::setActiveDevices);
 
-    qInfo() << QObject::tr("If you need more professional batch control mirror software, you can try the following software:");
-    qInfo() << QString(QObject::tr("QuickMirror") + " <https://lrbnfell4p.feishu.cn/drive/folder/KviYfz5uFlpUT8dXgdjccmfUnse>");
-
-    qInfo() << QObject::tr("If you need more professional game keymap mirror software, you can try the following software:");
-    qInfo() << QString(QObject::tr("QuickAssistant") + " <https://lrbnfell4p.feishu.cn/drive/folder/Hqckfxj5el1Wjpd9uezcX71lnBh>");
-
-    qInfo() << QObject::tr("You can contact me with telegram <https://t.me/+Ylf_5V_rDCMyODQ1>");
+    qInfo() << QObject::tr("Auto-cast mode enabled. Close a device window to hide it; the watcher keeps running until you quit the app.");
+    autoController.start();
 
     int ret = a.exec();
-    delete g_mainDlg;
 
 #if defined(Q_OS_WIN32) || defined(Q_OS_OSX)
     MouseTap::getInstance()->quitMouseEventTap();
@@ -218,10 +213,9 @@ QtMsgType covertLogLevel(const QString &logLevel)
 void myMessageOutput(QtMsgType type, const QMessageLogContext &context, const QString &msg)
 {
     QString outputMsg;
-    
 #ifdef ENABLE_DETAILED_LOGS
     QString timestamp = QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss.zzz");
-    
+
     if (context.file && context.line > 0) {
         QString fileName = QString::fromUtf8(context.file);
 
@@ -233,7 +227,7 @@ void myMessageOutput(QtMsgType type, const QMessageLogContext &context, const QS
         if (lastSlash >= 0) {
             fileName = fileName.mid(lastSlash + 1);
         }
-        
+
         outputMsg = QString("[ %1 %2: %3 ] %4").arg(timestamp).arg(fileName).arg(context.line).arg(msg);
     } else {
         outputMsg = QString("[%1] %2").arg(timestamp).arg(msg);
@@ -247,7 +241,7 @@ void myMessageOutput(QtMsgType type, const QMessageLogContext &context, const QS
         outputMsg.prepend("[info] ");
         break;
     case QtWarningMsg:
-        outputMsg.prepend("[warring] ");
+        outputMsg.prepend("[warning] ");
         break;
     case QtCriticalMsg:
         outputMsg.prepend("[critical] ");
@@ -256,32 +250,26 @@ void myMessageOutput(QtMsgType type, const QMessageLogContext &context, const QS
         outputMsg.prepend("[fatal] ");
         break;
     }
-
-    fprintf(stderr, "%s\n", outputMsg.toUtf8().constData());
 #else
     outputMsg = msg;
+#endif
+
+    auto levelOf = [](QtMsgType logType) -> float {
+        if (logType == QtInfoMsg) {
+            return QtDebugMsg + 0.5f;
+        }
+        return static_cast<float>(logType);
+    };
+
+    if (levelOf(type) < levelOf(g_msgType)) {
+        return;
+    }
+
+#ifdef ENABLE_DETAILED_LOGS
+    fprintf(stderr, "%s\n", outputMsg.toUtf8().constData());
+#else
     if (g_oldMessageHandler) {
         g_oldMessageHandler(type, context, outputMsg);
     }
 #endif
-
-    // Is Qt log level higher than warning?
-    float fLogLevel = g_msgType;
-    if (QtInfoMsg == g_msgType) {
-        fLogLevel = QtDebugMsg + 0.5f;
-    }
-    float fLogLevel2 = type;
-    if (QtInfoMsg == type) {
-        fLogLevel2 = QtDebugMsg + 0.5f;
-    }
-
-    if (fLogLevel <= fLogLevel2) {
-        if (g_mainDlg && g_mainDlg->isVisible() && !g_mainDlg->filterLog(outputMsg)) {
-            g_mainDlg->outLog(outputMsg);
-        }
-    }
-
-    if (QtFatalMsg == type) {
-        //abort();
-    }
 }

@@ -145,51 +145,30 @@ message(STATUS "[${PROJECT_NAME}] Qt version is: ${QT_DESIRED_VERSION}")
 # Sources
 #
 
-# fontawesome
-set(QC_FONTAWESOME_SOURCES
-    fontawesome/iconhelper.h
-    fontawesome/iconhelper.cpp
-)
-source_group(fontawesome FILES ${QC_FONTAWESOME_SOURCES})
-
 # uibase
 set(QC_UIBASE_SOURCES
     uibase/keepratiowidget.h
     uibase/keepratiowidget.cpp
-    uibase/magneticwidget.h
-    uibase/magneticwidget.cpp
 )
 source_group(uibase FILES ${QC_UIBASE_SOURCES})
 
-# audio
-set(QC_AUDIO_SOURCES
-    audio/audiooutput.h
-    audio/audiooutput.cpp
-)
-source_group(audio FILES ${QC_AUDIO_SOURCES})
-
 # ui
 set(QC_UI_SOURCES
-    ui/toolform.h
-    ui/toolform.cpp
-    ui/toolform.ui
     ui/videoform.h
     ui/videoform.cpp
     ui/videoform.ui
-    ui/dialog.cpp
-    ui/dialog.h
-    ui/dialog.ui
+    ui/statuswindow.h
+    ui/statuswindow.cpp
     render/qyuvopenglwidget.h
     render/qyuvopenglwidget.cpp
 )
 source_group(ui FILES ${QC_UI_SOURCES})
 
-# group controller
-set(QC_GROUP_CONTROLLER
-    groupcontroller/groupcontroller.h
-    groupcontroller/groupcontroller.cpp
+set(QC_AUTOCAST_SOURCES
+    autocastcontroller.h
+    autocastcontroller.cpp
 )
-source_group(groupcontroller FILES ${QC_GROUP_CONTROLLER})
+source_group(autocast FILES ${QC_AUTOCAST_SOURCES})
 
 # util
 set(QC_UTIL_SOURCES
@@ -197,6 +176,8 @@ set(QC_UTIL_SOURCES
     util/config.cpp
     util/mousetap/mousetap.h
     util/mousetap/mousetap.cpp
+    util/serverpathresolver.h
+    util/serverpathresolver.cpp
 )
 if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
     set(QC_UTIL_SOURCES ${QC_UTIL_SOURCES} 
@@ -256,14 +237,12 @@ endif()
 
 # all sources
 set(QC_PROJECT_SOURCES
-    ${QC_FONTAWESOME_SOURCES}
     ${QC_UIBASE_SOURCES}
     ${QC_UI_SOURCES}
     ${QC_UTIL_SOURCES}
     ${QC_MAIN_SOURCES}
-    ${QC_GROUP_CONTROLLER}
+    ${QC_AUTOCAST_SOURCES}
     ${QC_PLANTFORM_SOURCES}
-    ${QC_AUDIO_SOURCES}
 )
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
@@ -285,7 +264,6 @@ endif()
 # Internal include path (todo: remove this, use absolute path include)
 #
 
-target_include_directories(${PROJECT_NAME} PRIVATE fontawesome)
 target_include_directories(${PROJECT_NAME} PRIVATE util)
 target_include_directories(${PROJECT_NAME} PRIVATE uibase)
 target_include_directories(${PROJECT_NAME} PRIVATE ui)
@@ -310,13 +288,7 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
 
 # windows
 if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
-    get_target_property(QSC_BIN_OUTPUT_PATH ${PROJECT_NAME} RUNTIME_OUTPUT_DIRECTORY)
-    set(QSC_DEPLOY_PATH ${QSC_BIN_OUTPUT_PATH})
-
-    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CMAKE_CURRENT_SOURCE_DIR}/sndcpy/sndcpy.bat" "${QSC_BIN_OUTPUT_PATH}"
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CMAKE_CURRENT_SOURCE_DIR}/sndcpy/sndcpy.apk" "${QSC_BIN_OUTPUT_PATH}"
-    )
+    # no platform-specific artifacts to copy
 endif()
 
 # MacOS
@@ -328,13 +300,9 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
     get_target_property(MACOS_BUNDLE_PATH ${PROJECT_NAME} RUNTIME_OUTPUT_DIRECTORY)
     set(MACOS_BUNDLE_PATH ${MACOS_BUNDLE_PATH}/${PROJECT_NAME}.app/Contents)
 
-    set(QSC_DEPLOY_PATH ${MACOS_BUNDLE_PATH})
-
     add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
         # config file copy to Contents/MacOS/config
         COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CMAKE_CURRENT_SOURCE_DIR}/../config/config.ini" "${MACOS_BUNDLE_PATH}/MacOS/config/config.ini"
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CMAKE_CURRENT_SOURCE_DIR}/sndcpy/sndcpy.sh" "${MACOS_BUNDLE_PATH}/MacOS"
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CMAKE_CURRENT_SOURCE_DIR}/sndcpy/sndcpy.apk" "${MACOS_BUNDLE_PATH}/MacOS"
     )
 
     # Step 2. ues MACOSX_PACKAGE_LOCATION copy icns to Resources
@@ -361,14 +329,6 @@ endif()
 
 # Linux
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-    get_target_property(QSC_BIN_OUTPUT_PATH ${PROJECT_NAME} RUNTIME_OUTPUT_DIRECTORY)
-    set(QSC_DEPLOY_PATH ${QSC_BIN_OUTPUT_PATH})
-
-    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CMAKE_CURRENT_SOURCE_DIR}/sndcpy/sndcpy.sh" "${QSC_BIN_OUTPUT_PATH}"
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CMAKE_CURRENT_SOURCE_DIR}/sndcpy/sndcpy.apk" "${QSC_BIN_OUTPUT_PATH}"
-    )
-
     set(THREADS_PREFER_PTHREAD_FLAG ON)
     find_package(Threads REQUIRED)
 

@@ -9,7 +9,6 @@
 #include <QShortcut>
 #include <QStyle>
 #include <QStyleOption>
-#include <QTimer>
 #include <QWindow>
 #include <QtWidgets/QHBoxLayout>
 
@@ -18,21 +17,18 @@
 #endif
 
 #include "config.h"
-#include "iconhelper.h"
 #include "qyuvopenglwidget.h"
-#include "toolform.h"
 #include "mousetap/mousetap.h"
 #include "ui_videoform.h"
 #include "videoform.h"
 
-VideoForm::VideoForm(bool framelessWindow, bool skin, bool showToolbar, QWidget *parent) : QWidget(parent), ui(new Ui::videoForm), m_skin(skin)
+VideoForm::VideoForm(bool framelessWindow, bool skin, QWidget *parent) : QWidget(parent), ui(new Ui::videoForm), m_skin(skin)
 {
     ui->setupUi(this);
     initUI();
     installShortcut();
     updateShowSize(size());
     bool vertical = size().height() > size().width();
-    this->show_toolbar = showToolbar;
     if (m_skin) {
         updateStyleSheet(vertical);
     }
@@ -150,9 +146,6 @@ void VideoForm::showFPS(bool show)
 void VideoForm::updateRender(int width, int height, uint8_t* dataY, uint8_t* dataU, uint8_t* dataV, int linesizeY, int linesizeU, int linesizeV)
 {
     if (m_videoWidget->isHidden()) {
-        if (m_loadingWidget) {
-            m_loadingWidget->close();
-        }
         m_videoWidget->show();
     }
 
@@ -164,16 +157,6 @@ void VideoForm::updateRender(int width, int height, uint8_t* dataY, uint8_t* dat
 void VideoForm::setSerial(const QString &serial)
 {
     m_serial = serial;
-}
-
-void VideoForm::showToolForm(bool show)
-{
-    if (!m_toolForm) {
-        m_toolForm = new ToolForm(this, ToolForm::AP_OUTSIDE_RIGHT);
-        m_toolForm->setSerial(m_serial);
-    }
-    m_toolForm->move(pos().x() + geometry().width(), pos().y() + 30);
-    m_toolForm->setVisible(show);
 }
 
 void VideoForm::moveCenter()
@@ -481,7 +464,6 @@ void VideoForm::switchFullScreen()
         if (m_skin) {
             updateStyleSheet(m_frameSize.height() > m_frameSize.width());
         }
-        showToolForm(this->show_toolbar);
 #ifdef Q_OS_WIN32
         ::SetThreadExecutionState(ES_CONTINUOUS);
 #endif
@@ -500,7 +482,6 @@ void VideoForm::switchFullScreen()
 #ifdef Q_OS_OSX
         //setWindowFlags(windowFlags() & ~Qt::FramelessWindowHint);
 #endif
-        showToolForm(false);
         if (m_skin) {
             layout()->setContentsMargins(0, 0, 0, 0);
         }
@@ -511,14 +492,6 @@ void VideoForm::switchFullScreen()
         ::SetThreadExecutionState(ES_CONTINUOUS | ES_SYSTEM_REQUIRED | ES_DISPLAY_REQUIRED);
 #endif
     }
-}
-
-bool VideoForm::isHost()
-{
-    if (!m_toolForm) {
-        return false;
-    }
-    return m_toolForm->isHost();
 }
 
 void VideoForm::updateFPS(quint32 fps)
@@ -548,9 +521,6 @@ void VideoForm::staysOnTop(bool top)
         needShow = true;
     }
     setWindowFlag(Qt::WindowStaysOnTopHint, top);
-    if (m_toolForm) {
-        m_toolForm->setWindowFlag(Qt::WindowStaysOnTopHint, top);
-    }
     if (needShow) {
         show();
     }
@@ -753,16 +723,6 @@ void VideoForm::paintEvent(QPaintEvent *paint)
 #endif
     QPainter p(this);
     style()->drawPrimitive(QStyle::PE_Widget, &opt, &p, this);
-}
-
-void VideoForm::showEvent(QShowEvent *event)
-{
-    Q_UNUSED(event)
-    if (!isFullScreen() && this->show_toolbar) {
-        QTimer::singleShot(500, this, [this](){
-            showToolForm(this->show_toolbar);
-        });
-    }
 }
 
 void VideoForm::resizeEvent(QResizeEvent *event)

@@ -11,15 +11,13 @@ namespace Ui
     class videoForm;
 }
 
-class ToolForm;
-class FileHandler;
 class QYUVOpenGLWidget;
 class QLabel;
 class VideoForm : public QWidget, public qsc::DeviceObserver
 {
     Q_OBJECT
 public:
-    explicit VideoForm(bool framelessWindow = false, bool skin = true, bool showToolBar = true, QWidget *parent = 0);
+    explicit VideoForm(bool framelessWindow = false, bool skin = true, QWidget *parent = 0);
     ~VideoForm();
 
     void staysOnTop(bool top = true);
@@ -32,7 +30,6 @@ public:
     void removeBlackRect();
     void showFPS(bool show);
     void switchFullScreen();
-    bool isHost();
 
 private:
     void onFrame(int width, int height, uint8_t* dataY, uint8_t* dataU, uint8_t* dataV,
@@ -44,7 +41,6 @@ private:
     QMargins getMargins(bool vertical);
     void initUI();
 
-    void showToolForm(bool show = true);
     void moveCenter();
     void installShortcut();
     QRect getScreenRect();
@@ -59,7 +55,6 @@ protected:
     void keyReleaseEvent(QKeyEvent *event) override;
 
     void paintEvent(QPaintEvent *) override;
-    void showEvent(QShowEvent *event) override;
     void resizeEvent(QResizeEvent *event) override;
     void closeEvent(QCloseEvent *event) override;
 
@@ -71,8 +66,6 @@ protected:
 private:
     // ui
     Ui::videoForm *ui;
-    QPointer<ToolForm> m_toolForm;
-    QPointer<QWidget> m_loadingWidget;
     QPointer<QYUVOpenGLWidget> m_videoWidget;
     QPointer<QLabel> m_fpsLabel;
 
@@ -84,9 +77,6 @@ private:
     bool m_skin = true;
     QPoint m_fullScreenBeforePos;
     QString m_serial;
-
-    //Whether to display the toolbar when connecting a device.
-    bool show_toolbar = true;
 };
 
 #endif // VIDEOFORM_H

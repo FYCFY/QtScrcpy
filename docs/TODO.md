@@ -16,7 +16,6 @@
 ## 高优先级
 - linux打包以及版本号
 - 关于
-- 音频转发 https://github.com/rom1v/sndcpy
 
 # mark
 ## ffmpeg

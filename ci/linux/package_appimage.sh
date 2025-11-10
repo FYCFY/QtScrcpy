@@ -88,14 +88,6 @@ mkdir -p "$appdir_path/usr/share/metainfo"
 cp "$output_path/$app_name" "$appdir_path/usr/bin/$app_name"
 chmod +x "$appdir_path/usr/bin/$app_name"
 
-if [ -f "$output_path/sndcpy.sh" ]; then
-    cp "$output_path/sndcpy.sh" "$appdir_path/usr/bin/"
-    chmod +x "$appdir_path/usr/bin/sndcpy.sh"
-fi
-if [ -f "$output_path/sndcpy.apk" ]; then
-    cp "$output_path/sndcpy.apk" "$appdir_path/usr/bin/"
-fi
-
 if [ -d "$project_root/keymap" ]; then
     cp -r "$project_root/keymap" "$appdir_path/usr/share/"
 fi
@@ -111,7 +103,7 @@ mkdir -p "$appdir_path/usr/lib/qtscrcpy"
 if [ -f "$adb_source" ]; then
     cp "$adb_source" "$appdir_path/usr/lib/qtscrcpy/adb"
     chmod +x "$appdir_path/usr/lib/qtscrcpy/adb"
-    # Create symlink for sndcpy.sh compatibility
+    # Create adb symlink for convenience
     if [ ! -f "$appdir_path/usr/bin/adb" ]; then
         ln -sf "../lib/qtscrcpy/adb" "$appdir_path/usr/bin/adb"
     fi
