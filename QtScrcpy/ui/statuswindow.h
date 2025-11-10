@@ -2,8 +2,8 @@
 #define STATUSWINDOW_H
 
 #include <QMap>
-#include <QWidget>
 #include <QStringList>
+#include <QWidget>
 
 class QListWidget;
 class QPlainTextEdit;

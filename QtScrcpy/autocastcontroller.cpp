@@ -1,6 +1,8 @@
 #include "autocastcontroller.h"
 
+#include <QCoreApplication>
 #include <QDebug>
+#include <QFileInfo>
 #include <QProcess>
 #include <QRandomGenerator>
 #include <QRect>
@@ -228,7 +230,14 @@ QString AutoCastController::runAdbCommandSync(const QStringList &args, int timeo
 
     QProcess process;
     process.start(adb, args);
+    if (!process.waitForStarted(timeoutMs)) {
+        qWarning() << "AutoCastController: adb command start timeout" << adb << args;
+        process.kill();
+        process.waitForFinished();
+        return {};
+    }
     if (!process.waitForFinished(timeoutMs)) {
+        qWarning() << "AutoCastController: adb command timeout" << adb << args;
         process.kill();
         process.waitForFinished();
         return {};
@@ -244,8 +253,13 @@ QString AutoCastController::adbExecutablePath() const
         if (!env.isEmpty()) {
             path = QString::fromLocal8Bit(env);
         } else {
-            path = QStringLiteral("adb");
+            const QString bundled = QCoreApplication::applicationDirPath() + "/adb";
+            path = QFileInfo::exists(bundled) ? bundled : QStringLiteral("adb");
         }
+    }
+    QFileInfo info(path);
+    if (!info.exists() && !path.contains('/')) {
+        return QStringLiteral("adb");
     }
     return path;
 }
