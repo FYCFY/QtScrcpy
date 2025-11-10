@@ -13,11 +13,12 @@ namespace Ui
 
 class QYUVOpenGLWidget;
 class QLabel;
+class VideoToolbar;
 class VideoForm : public QWidget, public qsc::DeviceObserver
 {
     Q_OBJECT
 public:
-    explicit VideoForm(bool framelessWindow = false, bool skin = true, QWidget *parent = 0);
+    explicit VideoForm(bool framelessWindow = false, bool skin = true, bool showToolbar = true, QWidget *parent = 0);
     ~VideoForm();
 
     void staysOnTop(bool top = true);
@@ -41,6 +42,9 @@ private:
     QMargins getMargins(bool vertical);
     void initUI();
 
+    void ensureToolbar();
+    void updateToolbarGeometry();
+    void refreshToolbarVisibility();
     void moveCenter();
     void installShortcut();
     QRect getScreenRect();
@@ -55,8 +59,10 @@ protected:
     void keyReleaseEvent(QKeyEvent *event) override;
 
     void paintEvent(QPaintEvent *) override;
+    void showEvent(QShowEvent *event) override;
     void resizeEvent(QResizeEvent *event) override;
     void closeEvent(QCloseEvent *event) override;
+    void moveEvent(QMoveEvent *event) override;
 
     void dragEnterEvent(QDragEnterEvent *event) override;
     void dragMoveEvent(QDragMoveEvent *event) override;
@@ -66,6 +72,7 @@ protected:
 private:
     // ui
     Ui::videoForm *ui;
+    QPointer<VideoToolbar> m_toolbar;
     QPointer<QYUVOpenGLWidget> m_videoWidget;
     QPointer<QLabel> m_fpsLabel;
 
@@ -77,6 +84,7 @@ private:
     bool m_skin = true;
     QPoint m_fullScreenBeforePos;
     QString m_serial;
+    bool m_showToolbar = true;
 };
 
 #endif // VIDEOFORM_H

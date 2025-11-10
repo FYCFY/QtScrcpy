@@ -41,7 +41,9 @@ cmake --build build -j8
    - `QTSCRCPY_CONFIG_PATH`：重定向配置目录。
 
 若需调整比特率、最大分辨率、是否置顶、皮肤等，请直接编辑
-`config/config.ini` 与同目录下的 `userdata.ini`。
+`config/config.ini` 与同目录下的 `userdata.ini`。如果想隐藏屏幕旁的功能
+按钮（返回 / Home / 最近任务 / 电源），可以把 `userdata.ini` 中的
+`showToolbar` 设置为 `false`。
 
 ## 致谢
 

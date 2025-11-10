@@ -58,6 +58,8 @@ wrapper.
 
 Window geometry, FPS overlays, frameless mode, bitrate, etc. are read from
 `config/config.ini` and `userdata.ini`; edit those files to change defaults.
+Set `showToolbar=false` in `userdata.ini` if you want to hide the on-screen
+panel with Back/Home/Recent/Power shortcuts.
 
 ## Credits
 

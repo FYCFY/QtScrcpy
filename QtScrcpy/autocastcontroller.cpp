@@ -127,7 +127,7 @@ void AutoCastController::ensureVideoForm(const QString &serial, const QSize &siz
     const bool needsInit = (form == nullptr);
 
     if (!form) {
-        form = new VideoForm(m_bootConfig.framelessWindow, Config::getInstance().getSkin());
+        form = new VideoForm(m_bootConfig.framelessWindow, Config::getInstance().getSkin(), m_bootConfig.showToolbar);
         form->setSerial(serial);
         form->showFPS(m_bootConfig.showFPS);
         if (m_bootConfig.windowOnTop) {

@@ -157,6 +157,8 @@ set(QC_UI_SOURCES
     ui/videoform.h
     ui/videoform.cpp
     ui/videoform.ui
+    ui/videotoolbar.h
+    ui/videotoolbar.cpp
     ui/statuswindow.h
     ui/statuswindow.cpp
     render/qyuvopenglwidget.h

@@ -9,6 +9,8 @@
 #include <QShortcut>
 #include <QStyle>
 #include <QStyleOption>
+#include <QMoveEvent>
+#include <QShowEvent>
 #include <QWindow>
 #include <QtWidgets/QHBoxLayout>
 
@@ -18,11 +20,16 @@
 
 #include "config.h"
 #include "qyuvopenglwidget.h"
+#include "videotoolbar.h"
 #include "mousetap/mousetap.h"
 #include "ui_videoform.h"
 #include "videoform.h"
 
-VideoForm::VideoForm(bool framelessWindow, bool skin, QWidget *parent) : QWidget(parent), ui(new Ui::videoForm), m_skin(skin)
+VideoForm::VideoForm(bool framelessWindow, bool skin, bool showToolbar, QWidget *parent)
+    : QWidget(parent)
+    , ui(new Ui::videoForm)
+    , m_skin(skin)
+    , m_showToolbar(showToolbar)
 {
     ui->setupUi(this);
     initUI();
@@ -157,6 +164,43 @@ void VideoForm::updateRender(int width, int height, uint8_t* dataY, uint8_t* dat
 void VideoForm::setSerial(const QString &serial)
 {
     m_serial = serial;
+    if (m_toolbar) {
+        m_toolbar->setSerial(serial);
+    }
+}
+
+void VideoForm::ensureToolbar()
+{
+    if (!m_showToolbar) {
+        return;
+    }
+    if (!m_toolbar) {
+        m_toolbar = new VideoToolbar(this);
+        m_toolbar->setSerial(m_serial);
+    }
+}
+
+void VideoForm::updateToolbarGeometry()
+{
+    if (m_toolbar && m_toolbar->isVisible()) {
+        m_toolbar->syncPosition();
+    }
+}
+
+void VideoForm::refreshToolbarVisibility()
+{
+    if (!m_showToolbar || isFullScreen()) {
+        if (m_toolbar) {
+            m_toolbar->hide();
+        }
+        return;
+    }
+    ensureToolbar();
+    if (m_toolbar) {
+        m_toolbar->setSerial(m_serial);
+        m_toolbar->show();
+        updateToolbarGeometry();
+    }
 }
 
 void VideoForm::moveCenter()
@@ -464,6 +508,7 @@ void VideoForm::switchFullScreen()
         if (m_skin) {
             updateStyleSheet(m_frameSize.height() > m_frameSize.width());
         }
+        refreshToolbarVisibility();
 #ifdef Q_OS_WIN32
         ::SetThreadExecutionState(ES_CONTINUOUS);
 #endif
@@ -485,6 +530,7 @@ void VideoForm::switchFullScreen()
         if (m_skin) {
             layout()->setContentsMargins(0, 0, 0, 0);
         }
+        refreshToolbarVisibility();
         showFullScreen();
 
         // 全屏状态禁止电脑休眠、息屏
@@ -521,8 +567,12 @@ void VideoForm::staysOnTop(bool top)
         needShow = true;
     }
     setWindowFlag(Qt::WindowStaysOnTopHint, top);
+    if (m_toolbar) {
+        m_toolbar->setWindowFlag(Qt::WindowStaysOnTopHint, top);
+    }
     if (needShow) {
         show();
+        refreshToolbarVisibility();
     }
 }
 
@@ -749,6 +799,19 @@ void VideoForm::resizeEvent(QResizeEvent *event)
             setMinimumWidth(0);
         }
     }
+    updateToolbarGeometry();
+}
+
+void VideoForm::moveEvent(QMoveEvent *event)
+{
+    QWidget::moveEvent(event);
+    updateToolbarGeometry();
+}
+
+void VideoForm::showEvent(QShowEvent *event)
+{
+    QWidget::showEvent(event);
+    refreshToolbarVisibility();
 }
 
 void VideoForm::closeEvent(QCloseEvent *event)
@@ -760,6 +823,11 @@ void VideoForm::closeEvent(QCloseEvent *event)
     }
     Config::getInstance().setRect(device->getSerial(), geometry());
     device->disconnectDevice();
+    if (m_toolbar) {
+        m_toolbar->close();
+        m_toolbar->deleteLater();
+        m_toolbar = nullptr;
+    }
 }
 
 void VideoForm::dragEnterEvent(QDragEnterEvent *event)
