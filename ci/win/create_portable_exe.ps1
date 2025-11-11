@@ -154,18 +154,57 @@ internal static class PortableLauncher
 "@
 
     $stubExe = Join-Path $tmpRoot "launcher.exe"
+    $stubSourcePath = Join-Path $tmpRoot "launcher.cs"
     $references = @(
         (Get-FrameworkReference "System.IO.Compression.dll"),
         (Get-FrameworkReference "System.IO.Compression.FileSystem.dll")
     ) | Where-Object { $_ }
 
+    Set-Content -Path $stubSourcePath -Value $stubSource -Encoding UTF8
+
+    function Invoke-CSharpCompiler {
+        param(
+            [Parameter(Mandatory = $true)]
+            [string]$SourcePath,
+            [Parameter(Mandatory = $true)]
+            [string]$OutputPath,
+            [string[]]$References
+        )
+
+        $candidateCommands = @()
+
+        $resolved = Get-Command "csc.exe" -ErrorAction SilentlyContinue
+        if ($resolved) {
+            $candidateCommands += $resolved.Source
+        }
+
+        $candidateCommands += @(
+            (Join-Path $env:WINDIR "Microsoft.NET/Framework64/v4.0.30319/csc.exe"),
+            (Join-Path $env:WINDIR "Microsoft.NET/Framework/v4.0.30319/csc.exe")
+        ) | Where-Object { $_ }
+
+        $compilerPath = $candidateCommands |
+            Where-Object { $_ -and (Test-Path $_) } |
+            Select-Object -First 1
+
+        if (-not $compilerPath) {
+            throw "Unable to locate csc.exe compiler on this system."
+        }
+
+        $referenceArgs = @()
+        if ($References) {
+            $referenceArgs = $References | ForEach-Object { "/r:`"$_`"" }
+        }
+
+        & $compilerPath "/nologo" "/target:exe" "/optimize+" "/out:$OutputPath" $referenceArgs $SourcePath
+        if ($LASTEXITCODE -ne 0 -or -not (Test-Path $OutputPath)) {
+            throw "Failed to compile portable launcher using '$compilerPath' (exit code $LASTEXITCODE)."
+        }
+    }
+
     if (Test-Path $stubExe) { Remove-Item $stubExe -Force }
-    Add-Type -TypeDefinition $stubSource `
-        -Language CSharp `
-        -OutputAssembly $stubExe `
-        -OutputType ConsoleApplication `
-        -ReferencedAssemblies $references `
-        -CompilerOptions "/optimize+"
+
+    Invoke-CSharpCompiler -SourcePath $stubSourcePath -OutputPath $stubExe -References $references
 
     Copy-Item $stubExe $outputPath -Force
 
