@@ -4,7 +4,8 @@ param(
     [Parameter(Mandatory = $true)]
     [string]$OutputExe,
     [string]$RunProgram = "QtScrcpy.exe",
-    [string]$Title = "QtScrcpy Portable"
+    [string]$Title = "QtScrcpy Portable",
+    [string]$RuntimeIdentifier
 )
 
 $ErrorActionPreference = "Stop"
@@ -45,7 +46,7 @@ try {
     if (Test-Path $payloadZip) { Remove-Item $payloadZip -Force }
     Compress-Archive -Path (Join-Path $sourcePath "*") -DestinationPath $payloadZip -CompressionLevel Optimal
 
-    $stubSource = @"
+$stubSource = @"
 using System;
 using System.Diagnostics;
 using System.IO;
@@ -171,6 +172,10 @@ internal static class PortableLauncher
             -CompilerOptions "/optimize+"
     }
     else {
+        if ([string]::IsNullOrWhiteSpace($RuntimeIdentifier)) {
+            $RuntimeIdentifier = if ([Environment]::Is64BitOperatingSystem) { "win-x64" } else { "win-x86" }
+        }
+
         $stubSourcePath = Join-Path $tmpRoot "PortableLauncher.cs"
         Set-Content -Path $stubSourcePath -Value $stubSource -Encoding UTF8
 
@@ -183,6 +188,12 @@ internal static class PortableLauncher
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>disable</Nullable>
     <AssemblyName>launcher</AssemblyName>
+    <RuntimeIdentifier>$RuntimeIdentifier</RuntimeIdentifier>
+    <SelfContained>true</SelfContained>
+    <PublishSingleFile>true</PublishSingleFile>
+    <PublishTrimmed>false</PublishTrimmed>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
   </PropertyGroup>
 </Project>
 "@
@@ -196,7 +207,9 @@ internal static class PortableLauncher
             throw "Unable to locate 'dotnet'. Ensure .NET SDK is installed on the build agent."
         }
 
-        dotnet publish $projectPath -c Release -o $publishDir | Write-Host
+        dotnet publish $projectPath -c Release -o $publishDir -r $RuntimeIdentifier --self-contained true `
+            /p:PublishSingleFile=true /p:IncludeNativeLibrariesForSelfExtract=true /p:EnableCompressionInSingleFile=true `
+            /p:PublishTrimmed=false | Write-Host
 
         $publishedExe = Join-Path $publishDir "launcher.exe"
         if (-not (Test-Path $publishedExe)) {

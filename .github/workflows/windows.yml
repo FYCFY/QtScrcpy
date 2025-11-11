@@ -99,11 +99,13 @@ jobs:
           cmd.exe /c ci\win\publish_for_win.bat ${{ matrix.msvc-arch }} ..\build\${{ env.publish_name }}
           $sourceDir = Join-Path $PWD "ci/build/${{ env.publish_name }}"
           $portableExe = Join-Path $PWD "ci/build/${{ env.publish_name }}.exe"
+          $runtimeIdentifier = if ('${{ matrix.msvc-arch }}' -eq 'x86') { 'win-x86' } else { 'win-x64' }
           & (Join-Path $PWD "ci/win/create_portable_exe.ps1") `
             -SourceDir $sourceDir `
             -OutputExe $portableExe `
             -RunProgram "QtScrcpy.exe" `
-            -Title "QtScrcpy Portable (${{ matrix.msvc-arch }})"
+            -Title "QtScrcpy Portable (${{ matrix.msvc-arch }})" `
+            -RuntimeIdentifier $runtimeIdentifier
           "package-name=${{ env.publish_name }}.exe" >> $Env:GITHUB_OUTPUT
       # 上传artifacts
       # https://help.github.com/en/actions/configuring-and-managing-workflows/persisting-workflow-data-using-artifacts
