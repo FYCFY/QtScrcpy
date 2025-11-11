@@ -84,12 +84,11 @@ rm -f $publish_path/QtScrcpy.app/Contents/PlugIns/imageformats/libqwebp.dylib
 rm -rf $publish_path/QtScrcpy.app/Contents/PlugIns/virtualkeyboard
 rm -rf $publish_path/QtScrcpy.app/Contents/PlugIns/printsupport
 rm -rf $publish_path/QtScrcpy.app/Contents/PlugIns/platforminputcontexts
-rm -rf $publish_path/QtScrcpy.app/Contents/PlugIns/iconengines
 rm -rf $publish_path/QtScrcpy.app/Contents/PlugIns/bearer
 
 # Frameworks
 rm -rf $publish_path/QtScrcpy.app/Contents/Frameworks/QtVirtualKeyboard.framework
-rm -rf $publish_path/Contents/Frameworks/QtSvg.framework
+rm -rf $publish_path/QtScrcpy.app/Contents/Frameworks/QtSvg.framework
 
 # qml
 rm -rf $publish_path/QtScrcpy.app/Contents/Frameworks/QtQml.framework
