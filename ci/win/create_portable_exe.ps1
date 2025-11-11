@@ -207,6 +207,29 @@ internal static class PortableLauncher
             Copy-Item -Path $_.FullName -Destination $outputDir -Recurse -Force
         }
 
+        $publishedBaseName = [System.IO.Path]::GetFileNameWithoutExtension($publishedExe)
+        $targetBaseName = [System.IO.Path]::GetFileNameWithoutExtension($outputPath)
+        if ($publishedBaseName -and $targetBaseName -and ($publishedBaseName -ne $targetBaseName)) {
+            $renamePairs = @(
+                @{ Source = "$publishedBaseName.dll"; Destination = "$targetBaseName.dll" },
+                @{ Source = "$publishedBaseName.deps.json"; Destination = "$targetBaseName.deps.json" },
+                @{ Source = "$publishedBaseName.runtimeconfig.json"; Destination = "$targetBaseName.runtimeconfig.json" }
+            )
+
+            foreach ($pair in $renamePairs) {
+                $sourcePath = Join-Path $outputDir $pair.Source
+                if (Test-Path $sourcePath) {
+                    $destinationPath = Join-Path $outputDir $pair.Destination
+                    Move-Item -Path $sourcePath -Destination $destinationPath -Force
+                }
+            }
+
+            $redundantExe = Join-Path $outputDir ("$publishedBaseName.exe")
+            if ((Test-Path $redundantExe) -and ([System.IO.Path]::GetFileName($outputPath) -ne "$publishedBaseName.exe")) {
+                Remove-Item $redundantExe -Force
+            }
+        }
+
         $stubExe = $publishedExe
     }
 
