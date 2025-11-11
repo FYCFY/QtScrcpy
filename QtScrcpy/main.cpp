@@ -1,13 +1,18 @@
 ﻿#include <QApplication>
 #include <QDebug>
 #include <QFile>
+#include <QObject>
 #ifdef Q_OS_LINUX
 #include <QFileInfo>
 #include <QIcon>
 #endif
+#include <QDateTime>
+#include <QInputDialog>
+#include <QLineEdit>
+#include <QMessageBox>
 #include <QSurfaceFormat>
 #include <QTranslator>
-#include <QDateTime>
+#include <QWidget>
 
 #include "config.h"
 #include "mousetap/mousetap.h"
@@ -17,6 +22,33 @@
 static QtMessageHandler g_oldMessageHandler = Q_NULLPTR;
 void myMessageOutput(QtMsgType type, const QMessageLogContext &context, const QString &msg);
 void installTranslator();
+
+static bool verifyPassword(QWidget *parent)
+{
+    const QString correctPassword = QStringLiteral("204829");
+    while (true) {
+        bool ok = false;
+        const QString password = QInputDialog::getText(
+            parent,
+            QObject::tr("身份验证"),
+            QObject::tr("请输入密码以继续："),
+            QLineEdit::Password,
+            QString(),
+            &ok);
+
+        if (!ok) {
+            return false;
+        }
+
+        if (password == correctPassword) {
+            return true;
+        }
+
+        QMessageBox::warning(parent,
+                             QObject::tr("身份验证失败"),
+                             QObject::tr("密码错误，请重试。"));
+    }
+}
 
 static QtMsgType g_msgType = QtInfoMsg;
 QtMsgType covertLogLevel(const QString &logLevel);
@@ -91,6 +123,11 @@ int main(int argc, char *argv[])
     g_oldMessageHandler = qInstallMessageHandler(myMessageOutput);
     QApplication a(argc, argv);
     QApplication::setQuitOnLastWindowClosed(false);
+
+    if (!verifyPassword(nullptr)) {
+        qCritical() << QObject::tr("用户未通过身份验证，程序即将退出。");
+        return 0;
+    }
 
     // Set application icon for Linux (taskbar icon)
 #ifdef Q_OS_LINUX
