@@ -64,29 +64,57 @@ void StatusWindow::setActiveDevices(const QStringList &devices)
 {
     QSet<QString> current;
     for (const QString &serial : devices) {
+        if (serial.isEmpty()) {
+            continue;
+        }
         current.insert(serial);
         if (!m_deviceStatus.contains(serial)) {
             m_deviceStatus.insert(serial, tr("ADB 在线"));
         }
+        if (!m_deviceInfo.contains(serial)) {
+            m_deviceInfo.insert(serial, QStringList{tr("正在收集设备信息...")});
+        }
     }
-    QList<QString> removed;
+
     for (auto it = m_deviceInfo.begin(); it != m_deviceInfo.end();) {
         if (!current.contains(it.key())) {
-            removed << it.key();
+            m_deviceStatus.remove(it.key());
             it = m_deviceInfo.erase(it);
         } else {
             ++it;
         }
     }
-    for (const QString &serial : removed) {
-        m_deviceStatus.remove(serial);
-    }
+
     rebuildInfoPanel();
 }
 
 void StatusWindow::setDeviceStatuses(const QMap<QString, QString> &statuses)
 {
     m_deviceStatus = statuses;
+
+    for (auto it = statuses.constBegin(); it != statuses.constEnd(); ++it) {
+        if (!m_deviceInfo.contains(it.key())) {
+            QStringList placeholder;
+            if (it.value().contains(tr("未授权"))) {
+                placeholder << tr("等待 USB 调试授权...");
+            } else if (it.value().contains(tr("离线"))) {
+                placeholder << tr("设备离线，等待重新连接...");
+            } else {
+                placeholder << tr("正在收集设备信息...");
+            }
+            m_deviceInfo.insert(it.key(), placeholder);
+        }
+    }
+
+    for (auto it = m_deviceInfo.begin(); it != m_deviceInfo.end();) {
+        if (!statuses.contains(it.key())) {
+            m_deviceStatus.remove(it.key());
+            it = m_deviceInfo.erase(it);
+        } else {
+            ++it;
+        }
+    }
+
     rebuildInfoPanel();
 }
 

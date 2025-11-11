@@ -19,7 +19,9 @@ QString normalizePath(const QString &path)
     if (!info.isAbsolute()) {
         QDir base(QCoreApplication::applicationDirPath());
 #ifdef Q_OS_WIN
-        info.setFile(base.absoluteFilePath(path.replace('\\', '/')));
+        QString normalized = path;
+        normalized.replace('\\', '/');
+        info.setFile(base.absoluteFilePath(normalized));
 #else
         info.setFile(base.absoluteFilePath(path));
 #endif
