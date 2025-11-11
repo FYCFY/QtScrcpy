@@ -7,9 +7,9 @@ import subprocess
 current_file_path = os.path.dirname(os.path.realpath(__file__))
 dmg_settings_path = '%s/dmg-settings.json' % current_file_path
 dmg_background_img = '%s/dmg-background.jpg' % current_file_path
-app_path = '%s/../../build/QtScrcpy.app' % current_file_path
-dmg_path = '%s/../../build/QtScrcpy.dmg' % current_file_path
-app_name = 'QtScrcpy'
+app_name = 'scrcpy'
+app_path = '%s/../../build/%s.app' % (current_file_path, app_name)
+dmg_path = '%s/../../build/%s.dmg' % (current_file_path, app_name)
 fetch_fastboot_script = os.path.abspath(os.path.join(current_file_path, '../../scripts/fetch_fastboot.py'))
 
 def console_print(msg):
