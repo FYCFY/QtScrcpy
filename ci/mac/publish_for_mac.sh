@@ -49,6 +49,9 @@ echo current publish dir: $publish_dir
 keymap_path=$script_path/../../keymap
 # config_path=$script_path/../../config
 
+app_name="scrcpy"
+app_bundle_name="${app_name}.app"
+
 publish_path=$script_path/$publish_dir
 release_path=$script_path/../../output/$cpu_arch/RelWithDebInfo
 
@@ -60,40 +63,40 @@ fi
 
 # 复制要发布的包
 cp -r $release_path $publish_path
-cp -r $keymap_path $publish_path/QtScrcpy.app/Contents/MacOS
-# cp -r $config_path $publish_path/QtScrcpy.app/Contents/MacOS
+cp -r $keymap_path $publish_path/$app_bundle_name/Contents/MacOS
+# cp -r $config_path $publish_path/$app_bundle_name/Contents/MacOS
 
 # 添加qt依赖包
-macdeployqt $publish_path/QtScrcpy.app
+macdeployqt $publish_path/$app_bundle_name
 
 # 删除多余qt依赖包
 
 # PlugIns
-rm -rf $publish_path/QtScrcpy.app/Contents/PlugIns/iconengines
+rm -rf $publish_path/$app_bundle_name/Contents/PlugIns/iconengines
 # 截图功能需要libqjpeg.dylib
-rm -f $publish_path/QtScrcpy.app/Contents/PlugIns/imageformats/libqgif.dylib
-rm -f $publish_path/QtScrcpy.app/Contents/PlugIns/imageformats/libqicns.dylib
-rm -f $publish_path/QtScrcpy.app/Contents/PlugIns/imageformats/libqico.dylib
-# rm -f $publish_path/QtScrcpy.app/Contents/PlugIns/imageformats/libqjpeg.dylib
-rm -f $publish_path/QtScrcpy.app/Contents/PlugIns/imageformats/libqmacheif.dylib
-rm -f $publish_path/QtScrcpy.app/Contents/PlugIns/imageformats/libqmacjp2.dylib
-rm -f $publish_path/QtScrcpy.app/Contents/PlugIns/imageformats/libqtga.dylib
-rm -f $publish_path/QtScrcpy.app/Contents/PlugIns/imageformats/libqtiff.dylib
-rm -f $publish_path/QtScrcpy.app/Contents/PlugIns/imageformats/libqwbmp.dylib
-rm -f $publish_path/QtScrcpy.app/Contents/PlugIns/imageformats/libqwebp.dylib
-rm -rf $publish_path/QtScrcpy.app/Contents/PlugIns/virtualkeyboard
-rm -rf $publish_path/QtScrcpy.app/Contents/PlugIns/printsupport
-rm -rf $publish_path/QtScrcpy.app/Contents/PlugIns/platforminputcontexts
-rm -rf $publish_path/QtScrcpy.app/Contents/PlugIns/iconengines
-rm -rf $publish_path/QtScrcpy.app/Contents/PlugIns/bearer
+rm -f $publish_path/$app_bundle_name/Contents/PlugIns/imageformats/libqgif.dylib
+rm -f $publish_path/$app_bundle_name/Contents/PlugIns/imageformats/libqicns.dylib
+rm -f $publish_path/$app_bundle_name/Contents/PlugIns/imageformats/libqico.dylib
+# rm -f $publish_path/$app_bundle_name/Contents/PlugIns/imageformats/libqjpeg.dylib
+rm -f $publish_path/$app_bundle_name/Contents/PlugIns/imageformats/libqmacheif.dylib
+rm -f $publish_path/$app_bundle_name/Contents/PlugIns/imageformats/libqmacjp2.dylib
+rm -f $publish_path/$app_bundle_name/Contents/PlugIns/imageformats/libqtga.dylib
+rm -f $publish_path/$app_bundle_name/Contents/PlugIns/imageformats/libqtiff.dylib
+rm -f $publish_path/$app_bundle_name/Contents/PlugIns/imageformats/libqwbmp.dylib
+rm -f $publish_path/$app_bundle_name/Contents/PlugIns/imageformats/libqwebp.dylib
+rm -rf $publish_path/$app_bundle_name/Contents/PlugIns/virtualkeyboard
+rm -rf $publish_path/$app_bundle_name/Contents/PlugIns/printsupport
+rm -rf $publish_path/$app_bundle_name/Contents/PlugIns/platforminputcontexts
+rm -rf $publish_path/$app_bundle_name/Contents/PlugIns/iconengines
+rm -rf $publish_path/$app_bundle_name/Contents/PlugIns/bearer
 
 # Frameworks
-rm -rf $publish_path/QtScrcpy.app/Contents/Frameworks/QtVirtualKeyboard.framework
-rm -rf $publish_path/Contents/Frameworks/QtSvg.framework
+rm -rf $publish_path/$app_bundle_name/Contents/Frameworks/QtVirtualKeyboard.framework
+rm -rf $publish_path/$app_bundle_name/Contents/Frameworks/QtSvg.framework
 
 # qml
-rm -rf $publish_path/QtScrcpy.app/Contents/Frameworks/QtQml.framework
-rm -rf $publish_path/QtScrcpy.app/Contents/Frameworks/QtQuick.framework
+rm -rf $publish_path/$app_bundle_name/Contents/Frameworks/QtQml.framework
+rm -rf $publish_path/$app_bundle_name/Contents/Frameworks/QtQuick.framework
 
 echo
 echo

@@ -44,6 +44,7 @@ set adb_path=%script_path%..\..\QtScrcpy\QtScrcpyCore\src\third_party\adb\win\*.
 set jar_path=%script_path%..\..\QtScrcpy\QtScrcpyCore\src\third_party\scrcpy-server
 set keymap_path=%script_path%..\..\keymap
 set config_path=%script_path%..\..\config
+set app_name=scrcpy
 
 if /i %cpu_mode% == x86 (
     set publish_path=%script_path%%publish_dir%\
@@ -75,7 +76,7 @@ xcopy %keymap_path% %publish_path%keymap\ /E /Y
 xcopy %config_path% %publish_path%config\ /E /Y
 
 :: 添加qt依赖包
-windeployqt %publish_path%\QtScrcpy.exe
+windeployqt %publish_path%\%app_name%.exe
 
 :: 删除多余qt依赖包
 rmdir /s/q %publish_path%\iconengines
