@@ -11,8 +11,6 @@
 #include <QSet>
 #include <QVBoxLayout>
 #include <QToolButton>
-#include <QGraphicsDropShadowEffect>
-#include <QColor>
 
 StatusWindow::StatusWindow(QWidget *parent) : QWidget(parent)
 {
@@ -24,26 +22,23 @@ StatusWindow::StatusWindow(QWidget *parent) : QWidget(parent)
     surface->setObjectName(QStringLiteral("glassCard"));
     surface->setStyleSheet(R"(
         QWidget#glassCard {
-            background: qlineargradient(x1 0, y1 0, x2 0, y2 1,
-                                        stop 0 rgba(255, 255, 255, 40),
-                                        stop 0.5 rgba(30, 30, 40, 150),
-                                        stop 1 rgba(12, 12, 16, 190));
-            border-radius: 18px;
-            border: 1px solid rgba(255, 255, 255, 45);
+            background: rgba(25, 25, 25, 210);
+            border-radius: 14px;
+            border: 1px solid rgba(255, 255, 255, 35);
         }
         QToolButton#statusCloseButton {
             color: #F8F8FA;
-            background: rgba(255, 255, 255, 50);
-            border: 1px solid rgba(255, 255, 255, 40);
+            background: rgba(255, 255, 255, 40);
+            border: 1px solid rgba(255, 255, 255, 30);
             border-radius: 10px;
             padding: 0;
         }
         QToolButton#statusCloseButton:hover {
-            background: rgba(255, 86, 86, 180);
-            border-color: rgba(255, 255, 255, 80);
+            background: rgba(255, 86, 86, 160);
+            border-color: rgba(255, 255, 255, 60);
         }
         QToolButton#statusCloseButton:pressed {
-            background: rgba(255, 255, 255, 220);
+            background: rgba(255, 255, 255, 200);
             color: #1A1A1A;
         }
         QPlainTextEdit {
@@ -59,11 +54,6 @@ StatusWindow::StatusWindow(QWidget *parent) : QWidget(parent)
     auto *cardLayout = new QVBoxLayout(surface);
     cardLayout->setContentsMargins(16, 16, 16, 16);
     cardLayout->setSpacing(8);
-    auto *shadow = new QGraphicsDropShadowEffect(surface);
-    shadow->setBlurRadius(32);
-    shadow->setOffset(0, 12);
-    shadow->setColor(QColor(0, 0, 0, 160));
-    surface->setGraphicsEffect(shadow);
 
     auto *headerLayout = new QHBoxLayout();
     headerLayout->setContentsMargins(0, 0, 0, 0);
