@@ -4,7 +4,8 @@ param(
     [Parameter(Mandatory = $true)]
     [string]$OutputExe,
     [string]$RunProgram = "QtScrcpy.exe",
-    [string]$Title = "QtScrcpy Portable"
+    [string]$Title = "QtScrcpy Portable",
+    [string]$RuntimeIdentifier
 )
 
 $ErrorActionPreference = "Stop"
@@ -196,7 +197,31 @@ internal static class PortableLauncher
             throw "Unable to locate 'dotnet'. Ensure .NET SDK is installed on the build agent."
         }
 
-        dotnet publish $projectPath -c Release -o $publishDir | Write-Host
+        if (-not $RuntimeIdentifier) {
+            $sourceDirLower = $SourceDir.ToLowerInvariant()
+            if ($sourceDirLower -like "*\\x64\\*" -or $sourceDirLower -like "*/x64/*") {
+                $RuntimeIdentifier = "win-x64"
+            }
+            elseif ($sourceDirLower -like "*\\arm64\\*" -or $sourceDirLower -like "*/arm64/*") {
+                $RuntimeIdentifier = "win-arm64"
+            }
+            else {
+                $RuntimeIdentifier = "win-x86"
+            }
+        }
+
+        $publishArgs = @(
+            "publish",
+            $projectPath,
+            "-c", "Release",
+            "-o", $publishDir,
+            "-r", $RuntimeIdentifier,
+            "--self-contained", "true",
+            "/p:PublishSingleFile=true",
+            "/p:IncludeNativeLibrariesForSelfExtract=true",
+            "/p:UseAppHost=true"
+        )
+        dotnet @publishArgs | Write-Host
 
         $publishedExe = Join-Path $publishDir "launcher.exe"
         if (-not (Test-Path $publishedExe)) {
