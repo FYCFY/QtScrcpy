@@ -138,6 +138,8 @@ int main(int argc, char *argv[])
                      &statusWindow, &StatusWindow::setActiveDevices);
     QObject::connect(&autoController, &AutoCastController::deviceInfoReady,
                      &statusWindow, &StatusWindow::updateDeviceInfo);
+    QObject::connect(&autoController, &AutoCastController::deviceStatusChanged,
+                     &statusWindow, &StatusWindow::setDeviceStatuses);
 
     qInfo() << QObject::tr("Auto-cast mode enabled. Close a device window to hide it; the watcher keeps running until you quit the app.");
     autoController.start();

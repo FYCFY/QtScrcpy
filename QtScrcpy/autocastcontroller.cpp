@@ -2,6 +2,7 @@
 
 #include <QDebug>
 #include <QProcess>
+#include <QRegularExpression>
 #include <QRandomGenerator>
 #include <QRect>
 #include <QStringList>
@@ -81,6 +82,7 @@ void AutoCastController::handleAdbResult(qsc::AdbProcess::ADB_EXEC_RESULT result
     }
 
     updateActiveDeviceList(current);
+    emit deviceStatusChanged(readAdbDeviceStatuses());
 }
 
 void AutoCastController::startCasting(const QString &serial)
@@ -242,6 +244,41 @@ QString AutoCastController::runAdbCommandSync(const QStringList &args, int timeo
         return {};
     }
     return QString::fromLocal8Bit(process.readAllStandardOutput()).trimmed();
+}
+
+QMap<QString, QString> AutoCastController::readAdbDeviceStatuses()
+{
+    QMap<QString, QString> statuses;
+    const QString output = runAdbCommandSync(QStringList() << "devices");
+    const QStringList lines = output.split(QRegularExpression("[\r\n]+"), Qt::SkipEmptyParts);
+
+    for (const QString &line : lines) {
+        if (line.contains("List of devices", Qt::CaseInsensitive)) {
+            continue;
+        }
+        const QString trimmed = line.trimmed();
+        if (trimmed.isEmpty()) {
+            continue;
+        }
+        const QStringList parts = trimmed.split(QRegularExpression("\\s+"), Qt::SkipEmptyParts);
+        if (parts.isEmpty()) {
+            continue;
+        }
+        const QString serial = parts.first();
+        QString status = tr("ADB 在线");
+        if (parts.size() >= 2) {
+            const QString flag = parts.at(1).toLower();
+            if (flag.contains("unauthorized")) {
+                status = tr("未授权");
+            } else if (flag.contains("offline")) {
+                status = tr("离线");
+            } else if (flag.contains("device")) {
+                status = tr("ADB 在线");
+            }
+        }
+        statuses.insert(serial, status);
+    }
+    return statuses;
 }
 
 quint16 AutoCastController::resolveMaxSize() const

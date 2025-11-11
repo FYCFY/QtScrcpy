@@ -3,11 +3,13 @@
 #include <QAbstractItemView>
 #include <QApplication>
 #include <QFrame>
+#include <QGraphicsBlurEffect>
 #include <QFont>
 #include <QLabel>
 #include <QListWidget>
 #include <QPlainTextEdit>
 #include <QTextOption>
+#include <QMouseEvent>
 #include <QSet>
 #include <QVBoxLayout>
 
@@ -33,12 +35,15 @@ StatusWindow::StatusWindow(QWidget *parent) : QWidget(parent)
             border: none;
         }
     )");
+    auto *blur = new QGraphicsBlurEffect(surface);
+    blur->setBlurRadius(25);
+    surface->setGraphicsEffect(blur);
 
     auto *cardLayout = new QVBoxLayout(surface);
     cardLayout->setContentsMargins(16, 16, 16, 16);
     cardLayout->setSpacing(6);
 
-    m_summaryLabel = new QLabel(tr("已连接设备: 0"), surface);
+    m_summaryLabel = new QLabel(tr("设备监控"), surface);
     QFont summaryFont = m_summaryLabel->font();
     summaryFont.setPointSize(summaryFont.pointSize() + 2);
     m_summaryLabel->setFont(summaryFont);
@@ -70,9 +75,8 @@ StatusWindow::StatusWindow(QWidget *parent) : QWidget(parent)
 
 void StatusWindow::setActiveDevices(const QStringList &devices)
 {
-    m_deviceList->clear();
-    m_deviceList->addItems(devices);
-    m_summaryLabel->setText(tr("已连接设备: %1").arg(devices.size()));
+    m_currentSerials = devices;
+    rebuildDeviceList();
 
     for (const QString &serial : devices) {
         if (!serial.isEmpty()) {
@@ -100,6 +104,13 @@ void StatusWindow::setActiveDevices(const QStringList &devices)
     rebuildInfoPanel();
 }
 
+void StatusWindow::setDeviceStatuses(const QMap<QString, QString> &statuses)
+{
+    m_deviceStatus = statuses;
+    rebuildDeviceList();
+    rebuildInfoPanel();
+}
+
 void StatusWindow::updateDeviceInfo(const QString &serial, const QStringList &infoLines)
 {
     if (serial.isEmpty()) {
@@ -123,6 +134,38 @@ void StatusWindow::rebuildInfoPanel()
         blocks << section.join('\n');
     }
     m_logView->setPlainText(blocks.join("\n\n"));
+}
+
+void StatusWindow::rebuildDeviceList()
+{
+    m_deviceList->clear();
+    for (const QString &serial : m_currentSerials) {
+        const QString status = m_deviceStatus.value(serial, tr("状态未知"));
+        m_deviceList->addItem(QStringLiteral("%1  [%2]").arg(serial, status));
+    }
+}
+
+void StatusWindow::mousePressEvent(QMouseEvent *event)
+{
+    if (event->button() == Qt::LeftButton) {
+        m_dragging = true;
+        m_dragOffset = event->globalPos() - frameGeometry().topLeft();
+        event->accept();
+    }
+}
+
+void StatusWindow::mouseMoveEvent(QMouseEvent *event)
+{
+    if (m_dragging && (event->buttons() & Qt::LeftButton)) {
+        move(event->globalPos() - m_dragOffset);
+        event->accept();
+    }
+}
+
+void StatusWindow::mouseReleaseEvent(QMouseEvent *event)
+{
+    m_dragging = false;
+    QWidget::mouseReleaseEvent(event);
 }
 
 void StatusWindow::closeEvent(QCloseEvent *event)
