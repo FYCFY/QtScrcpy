@@ -149,7 +149,13 @@ void StatusWindow::mousePressEvent(QMouseEvent *event)
 {
     if (event->button() == Qt::LeftButton) {
         m_dragging = true;
-        m_dragOffset = event->globalPos() - frameGeometry().topLeft();
+        QPointF globalPos;
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+        globalPos = event->globalPosition();
+#else
+        globalPos = event->globalPos();
+#endif
+        m_dragOffset = globalPos.toPoint() - frameGeometry().topLeft();
         event->accept();
     }
 }
@@ -157,7 +163,13 @@ void StatusWindow::mousePressEvent(QMouseEvent *event)
 void StatusWindow::mouseMoveEvent(QMouseEvent *event)
 {
     if (m_dragging && (event->buttons() & Qt::LeftButton)) {
-        move(event->globalPos() - m_dragOffset);
+        QPointF globalPos;
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+        globalPos = event->globalPosition();
+#else
+        globalPos = event->globalPos();
+#endif
+        move(globalPos.toPoint() - m_dragOffset);
         event->accept();
     }
 }
