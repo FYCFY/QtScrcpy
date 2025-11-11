@@ -3,6 +3,7 @@
 #include <QApplication>
 #include <QFrame>
 #include <QFont>
+#include <QLabel>
 #include <QPlainTextEdit>
 #include <QTextOption>
 #include <QMouseEvent>
