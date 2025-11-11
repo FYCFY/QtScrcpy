@@ -203,7 +203,11 @@ internal static class PortableLauncher
             throw "dotnet publish did not produce launcher.exe"
         }
 
-        Copy-Item $publishedExe $stubExe -Force
+        Get-ChildItem -Path $publishDir | ForEach-Object {
+            Copy-Item -Path $_.FullName -Destination $outputDir -Recurse -Force
+        }
+
+        $stubExe = $publishedExe
     }
 
     Copy-Item $stubExe $outputPath -Force
