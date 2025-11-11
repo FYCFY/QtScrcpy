@@ -159,7 +159,9 @@ internal static class PortableLauncher
         (Get-FrameworkReference "System.IO.Compression.FileSystem.dll")
     ) | Where-Object { $_ }
 
+    if (Test-Path $stubExe) { Remove-Item $stubExe -Force }
     Add-Type -TypeDefinition $stubSource `
+        -Language CSharp `
         -OutputAssembly $stubExe `
         -OutputType ConsoleApplication `
         -ReferencedAssemblies $references `
