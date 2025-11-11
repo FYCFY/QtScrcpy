@@ -160,12 +160,55 @@ internal static class PortableLauncher
     ) | Where-Object { $_ }
 
     if (Test-Path $stubExe) { Remove-Item $stubExe -Force }
-    Add-Type -TypeDefinition $stubSource `
-        -Language CSharp `
-        -OutputAssembly $stubExe `
-        -OutputType ConsoleApplication `
-        -ReferencedAssemblies $references `
-        -CompilerOptions "/optimize+"
+
+    $isDesktopPwsh = $PSVersionTable.PSEdition -eq 'Desktop'
+    if ($isDesktopPwsh) {
+        Add-Type -TypeDefinition $stubSource `
+            -Language CSharp `
+            -OutputAssembly $stubExe `
+            -OutputType ConsoleApplication `
+            -ReferencedAssemblies $references `
+            -CompilerOptions "/optimize+"
+    }
+    else {
+        $stubSourcePath = Join-Path $tmpRoot "PortableLauncher.cs"
+        Set-Content -Path $stubSourcePath -Value $stubSource -Encoding UTF8
+
+        $projectPath = Join-Path $tmpRoot "PortableLauncher.csproj"
+        $projectContent = @"
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net6.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <AssemblyName>launcher</AssemblyName>
+  </PropertyGroup>
+</Project>
+"@
+        Set-Content -Path $projectPath -Value $projectContent -Encoding UTF8
+
+        $publishDir = Join-Path $tmpRoot "publish"
+        if (Test-Path $publishDir) { Remove-Item $publishDir -Recurse -Force }
+
+        $dotnet = Get-Command dotnet -ErrorAction SilentlyContinue
+        if (-not $dotnet) {
+            throw "Unable to locate 'dotnet'. Ensure .NET SDK is installed on the build agent."
+        }
+
+        dotnet publish $projectPath -c Release -o $publishDir | Write-Host
+
+        $publishedExe = Join-Path $publishDir "launcher.exe"
+        if (-not (Test-Path $publishedExe)) {
+            throw "dotnet publish did not produce launcher.exe"
+        }
+
+        Get-ChildItem -Path $publishDir | ForEach-Object {
+            Copy-Item -Path $_.FullName -Destination $outputDir -Recurse -Force
+        }
+
+        $stubExe = $publishedExe
+    }
 
     Copy-Item $stubExe $outputPath -Force
 
