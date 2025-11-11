@@ -4,11 +4,13 @@
 #include <QFrame>
 #include <QFont>
 #include <QLabel>
+#include <QHBoxLayout>
 #include <QPlainTextEdit>
 #include <QTextOption>
 #include <QMouseEvent>
 #include <QSet>
 #include <QVBoxLayout>
+#include <QToolButton>
 
 StatusWindow::StatusWindow(QWidget *parent) : QWidget(parent)
 {
@@ -24,6 +26,21 @@ StatusWindow::StatusWindow(QWidget *parent) : QWidget(parent)
             border-radius: 14px;
             border: 1px solid rgba(255, 255, 255, 35);
         }
+        QToolButton#statusCloseButton {
+            color: #F8F8FA;
+            background: rgba(255, 255, 255, 40);
+            border: 1px solid rgba(255, 255, 255, 30);
+            border-radius: 10px;
+            padding: 0;
+        }
+        QToolButton#statusCloseButton:hover {
+            background: rgba(255, 86, 86, 160);
+            border-color: rgba(255, 255, 255, 60);
+        }
+        QToolButton#statusCloseButton:pressed {
+            background: rgba(255, 255, 255, 200);
+            color: #1A1A1A;
+        }
         QPlainTextEdit {
             color: #F8F8FA;
             background: transparent;
@@ -38,12 +55,28 @@ StatusWindow::StatusWindow(QWidget *parent) : QWidget(parent)
     cardLayout->setContentsMargins(16, 16, 16, 16);
     cardLayout->setSpacing(8);
 
+    auto *headerLayout = new QHBoxLayout();
+    headerLayout->setContentsMargins(0, 0, 0, 0);
+    headerLayout->setSpacing(8);
+
     QLabel *title = new QLabel(tr("设备信息"), surface);
     QFont titleFont = title->font();
     titleFont.setPointSize(titleFont.pointSize() + 2);
     titleFont.setBold(true);
     title->setFont(titleFont);
-    cardLayout->addWidget(title);
+    headerLayout->addWidget(title);
+
+    auto *closeButton = new QToolButton(surface);
+    closeButton->setObjectName(QStringLiteral("statusCloseButton"));
+    closeButton->setText(QStringLiteral("×"));
+    closeButton->setToolTip(tr("关闭监控窗口"));
+    closeButton->setCursor(Qt::PointingHandCursor);
+    closeButton->setFixedSize(20, 20);
+    connect(closeButton, &QToolButton::clicked, this, &StatusWindow::close);
+
+    headerLayout->addStretch(1);
+    headerLayout->addWidget(closeButton);
+    cardLayout->addLayout(headerLayout);
 
     m_logView = new QPlainTextEdit(surface);
     m_logView->setReadOnly(true);
