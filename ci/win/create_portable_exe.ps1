@@ -63,12 +63,15 @@ try {
         $extraArchive = Join-Path $tmpRoot "7z-extra.7z"
         Write-Host "Downloading 7-Zip extra SFX module..."
         Invoke-WebRequest -Uri $extraUrl -OutFile $extraArchive
-        & $sevenZipExe x -y "-o$moduleDir" $extraArchive "7zSD.sfx" | Out-Null
+        & $sevenZipExe x -y "-o$moduleDir" $extraArchive | Out-Null
         if ($LASTEXITCODE -ne 0) {
             throw "Failed to extract 7zSD.sfx from extra package."
         }
-        $sfxModule = Join-Path $moduleDir "7zSD.sfx"
-        if (-not (Test-Path $sfxModule)) {
+        $candidate = Get-ChildItem -Path $moduleDir -Recurse -Filter "7zSD.sfx" | Select-Object -First 1
+        if ($candidate) {
+            $sfxModule = $candidate.FullName
+        }
+        if (-not $sfxModule) {
             throw "7zSD.sfx not found after extraction."
         }
     }
