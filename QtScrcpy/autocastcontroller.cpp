@@ -206,8 +206,16 @@ QStringList AutoCastController::collectDeviceInfo(const QString &serial)
     addLine(tr("活动卡槽"), slot);
 
     const QString blValue = readDeviceProperty(serial, "ro.boot.flash.locked");
-    QString blText = blValue.trimmed() == QStringLiteral("0") ? tr("已解锁") : tr("未解锁");
-    addLine(tr("BL 锁状态"), blText);
+    const QString trimmedBl = blValue.trimmed();
+    QString blText;
+    if (trimmedBl.isEmpty()) {
+        blText = tr("未知");
+    } else if (trimmedBl == QStringLiteral("0")) {
+        blText = QStringLiteral("unlocked");
+    } else {
+        blText = QStringLiteral("locked");
+    }
+    addLine(tr("BL 状态"), blText);
 
     return details;
 }
