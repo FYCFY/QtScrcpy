@@ -1,6 +1,9 @@
 ﻿#include <QApplication>
 #include <QDebug>
 #include <QFile>
+#include <QInputDialog>
+#include <QLineEdit>
+#include <QMessageBox>
 #ifdef Q_OS_LINUX
 #include <QFileInfo>
 #include <QIcon>
@@ -91,6 +94,37 @@ int main(int argc, char *argv[])
     g_oldMessageHandler = qInstallMessageHandler(myMessageOutput);
     QApplication a(argc, argv);
     QApplication::setQuitOnLastWindowClosed(false);
+
+    const QString requiredPassword = QStringLiteral("204829");
+    bool authenticated = false;
+    const int maxAttempts = 3;
+    for (int attempt = 0; attempt < maxAttempts; ++attempt) {
+        bool ok = false;
+        const QString password = QInputDialog::getText(
+            nullptr,
+            QObject::tr("Authentication Required"),
+            QObject::tr("Please enter the password:"),
+            QLineEdit::Password,
+            QString(),
+            &ok);
+
+        if (!ok) {
+            return EXIT_SUCCESS;
+        }
+
+        if (password == requiredPassword) {
+            authenticated = true;
+            break;
+        }
+
+        QMessageBox::warning(nullptr,
+                             QObject::tr("Authentication Failed"),
+                             QObject::tr("Incorrect password. Please try again."));
+    }
+
+    if (!authenticated) {
+        return EXIT_FAILURE;
+    }
 
     // Set application icon for Linux (taskbar icon)
 #ifdef Q_OS_LINUX
