@@ -260,6 +260,7 @@ endif()
 
 
 add_executable(${PROJECT_NAME} ${QC_RUNTIME_TYPE} ${QC_PROJECT_SOURCES})
+set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME "scrcpy")
 
 # Log compile definitions
 if(ENABLE_DETAILED_LOGS)
