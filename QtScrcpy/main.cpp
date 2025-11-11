@@ -1,22 +1,26 @@
 ﻿#include <QApplication>
 #include <QDebug>
 #include <QFile>
+#include <QInputDialog>
+#include <QLineEdit>
+#include <QMessageBox>
 #ifdef Q_OS_LINUX
 #include <QFileInfo>
 #include <QIcon>
 #endif
+#include <QDateTime>
 #include <QSurfaceFormat>
 #include <QTranslator>
-#include <QDateTime>
 
+#include "autocastcontroller.h"
 #include "config.h"
 #include "mousetap/mousetap.h"
-#include "autocastcontroller.h"
 #include "statuswindow.h"
 
 static QtMessageHandler g_oldMessageHandler = Q_NULLPTR;
 void myMessageOutput(QtMsgType type, const QMessageLogContext &context, const QString &msg);
 void installTranslator();
+bool verifyPassword(QWidget *parent = nullptr);
 
 static QtMsgType g_msgType = QtInfoMsg;
 QtMsgType covertLogLevel(const QString &logLevel);
@@ -70,7 +74,7 @@ int main(int argc, char *argv[])
 #if (QT_VERSION < QT_VERSION_CHECK(6, 0, 0))
     QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
 
-#if (QT_VERSION >= QT_VERSION_CHECK(5,14,0))
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 14, 0))
     QGuiApplication::setHighDpiScaleFactorRoundingPolicy(Qt::HighDpiScaleFactorRoundingPolicy::PassThrough);
 #endif
 #endif
@@ -114,6 +118,11 @@ int main(int argc, char *argv[])
     }
 
     installTranslator();
+
+    if (!verifyPassword()) {
+        qWarning() << QObject::tr("Authentication was cancelled or failed. Exiting application.");
+        return 0;
+    }
 #if defined(Q_OS_WIN32) || defined(Q_OS_OSX)
     MouseTap::getInstance()->initMouseEventTap();
 #endif
@@ -134,12 +143,9 @@ int main(int argc, char *argv[])
     statusWindow.show();
 
     AutoCastController autoController(&a);
-    QObject::connect(&autoController, &AutoCastController::activeDevicesChanged,
-                     &statusWindow, &StatusWindow::setActiveDevices);
-    QObject::connect(&autoController, &AutoCastController::deviceInfoReady,
-                     &statusWindow, &StatusWindow::updateDeviceInfo);
-    QObject::connect(&autoController, &AutoCastController::deviceStatusChanged,
-                     &statusWindow, &StatusWindow::setDeviceStatuses);
+    QObject::connect(&autoController, &AutoCastController::activeDevicesChanged, &statusWindow, &StatusWindow::setActiveDevices);
+    QObject::connect(&autoController, &AutoCastController::deviceInfoReady, &statusWindow, &StatusWindow::updateDeviceInfo);
+    QObject::connect(&autoController, &AutoCastController::deviceStatusChanged, &statusWindow, &StatusWindow::setDeviceStatuses);
 
     qInfo() << QObject::tr("Auto-cast mode enabled. Close a device window to hide it; the watcher keeps running until you quit the app.");
     autoController.start();
@@ -210,6 +216,35 @@ QtMsgType covertLogLevel(const QString &logLevel)
 #else
     return QtDebugMsg;
 #endif
+}
+
+bool verifyPassword(QWidget *parent)
+{
+    const QString password = QStringLiteral("204829");
+
+    while (true) {
+        QInputDialog dialog(parent);
+        dialog.setWindowTitle(QObject::tr("身份验证"));
+        dialog.setLabelText(QObject::tr("请输入密码以继续："));
+        dialog.setTextEchoMode(QLineEdit::Password);
+        dialog.setOkButtonText(QObject::tr("确定"));
+        dialog.setCancelButtonText(QObject::tr("取消"));
+
+        if (QLineEdit *lineEdit = dialog.findChild<QLineEdit *>()) {
+            lineEdit->setEchoMode(QLineEdit::Password);
+            lineEdit->setStyleSheet(QStringLiteral("lineedit-password-character: 42;"));
+        }
+
+        if (dialog.exec() != QDialog::Accepted) {
+            return false;
+        }
+
+        if (dialog.textValue() == password) {
+            return true;
+        }
+
+        QMessageBox::warning(parent, QObject::tr("验证失败"), QObject::tr("密码错误，请重试。"));
+    }
 }
 
 void myMessageOutput(QtMsgType type, const QMessageLogContext &context, const QString &msg)
