@@ -1,17 +1,20 @@
-﻿#include <QApplication>
+#include <QApplication>
 #include <QDebug>
 #include <QFile>
+#include <QInputDialog>
+#include <QLineEdit>
 #ifdef Q_OS_LINUX
 #include <QFileInfo>
 #include <QIcon>
 #endif
+#include <QDateTime>
+#include <QMessageBox>
 #include <QSurfaceFormat>
 #include <QTranslator>
-#include <QDateTime>
 
+#include "autocastcontroller.h"
 #include "config.h"
 #include "mousetap/mousetap.h"
-#include "autocastcontroller.h"
 #include "statuswindow.h"
 
 static QtMessageHandler g_oldMessageHandler = Q_NULLPTR;
@@ -70,7 +73,7 @@ int main(int argc, char *argv[])
 #if (QT_VERSION < QT_VERSION_CHECK(6, 0, 0))
     QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
 
-#if (QT_VERSION >= QT_VERSION_CHECK(5,14,0))
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 14, 0))
     QGuiApplication::setHighDpiScaleFactorRoundingPolicy(Qt::HighDpiScaleFactorRoundingPolicy::PassThrough);
 #endif
 #endif
@@ -91,6 +94,20 @@ int main(int argc, char *argv[])
     g_oldMessageHandler = qInstallMessageHandler(myMessageOutput);
     QApplication a(argc, argv);
     QApplication::setQuitOnLastWindowClosed(false);
+
+    const QString expectedPassword = QStringLiteral("204829");
+    while (true) {
+        bool ok = false;
+        const QString enteredPassword
+            = QInputDialog::getText(Q_NULLPTR, QObject::tr("身份验证"), QObject::tr("请输入密码："), QLineEdit::Password, QString(), &ok);
+        if (!ok) {
+            return 0;
+        }
+        if (enteredPassword == expectedPassword) {
+            break;
+        }
+        QMessageBox::warning(Q_NULLPTR, QObject::tr("身份验证失败"), QObject::tr("密码错误，请重试。"));
+    }
 
     // Set application icon for Linux (taskbar icon)
 #ifdef Q_OS_LINUX
@@ -134,12 +151,9 @@ int main(int argc, char *argv[])
     statusWindow.show();
 
     AutoCastController autoController(&a);
-    QObject::connect(&autoController, &AutoCastController::activeDevicesChanged,
-                     &statusWindow, &StatusWindow::setActiveDevices);
-    QObject::connect(&autoController, &AutoCastController::deviceInfoReady,
-                     &statusWindow, &StatusWindow::updateDeviceInfo);
-    QObject::connect(&autoController, &AutoCastController::deviceStatusChanged,
-                     &statusWindow, &StatusWindow::setDeviceStatuses);
+    QObject::connect(&autoController, &AutoCastController::activeDevicesChanged, &statusWindow, &StatusWindow::setActiveDevices);
+    QObject::connect(&autoController, &AutoCastController::deviceInfoReady, &statusWindow, &StatusWindow::updateDeviceInfo);
+    QObject::connect(&autoController, &AutoCastController::deviceStatusChanged, &statusWindow, &StatusWindow::setDeviceStatuses);
 
     qInfo() << QObject::tr("Auto-cast mode enabled. Close a device window to hide it; the watcher keeps running until you quit the app.");
     autoController.start();
