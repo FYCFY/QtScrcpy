@@ -97,8 +97,11 @@ echo=
 echo ---------------------------------------------------------------
 echo fetch official fastboot
 echo ---------------------------------------------------------------
-python "%script_path%\..\scripts\fetch_fastboot.py" --platform win --dest "%publish_path%"
+set fastboot_dest=%publish_path%
+if "%fastboot_dest:~-1%"=="\" set fastboot_dest=%fastboot_dest:~0,-1%
+python "%script_path%\..\scripts\fetch_fastboot.py" --platform win --dest "%fastboot_dest%"
 if %errorlevel% neq 0 goto return
+set fastboot_dest=
 
 :: 删除vc_redist，自己copy vcruntime dll
 if /i %cpu_mode% == x86 (
