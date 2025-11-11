@@ -29,6 +29,7 @@ private:
     QPlainTextEdit *m_logView = nullptr;
     QLabel *m_summaryLabel = nullptr;
     QMap<QString, QStringList> m_deviceInfo;
+    QMap<QString, QString> m_deviceStatus;
 };
 
 #endif // STATUSWINDOW_H
