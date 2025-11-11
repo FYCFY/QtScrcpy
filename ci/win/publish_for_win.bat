@@ -74,23 +74,31 @@ xcopy %jar_path% %publish_path% /Y
 xcopy %keymap_path% %publish_path%keymap\ /E /Y
 xcopy %config_path% %publish_path%config\ /E /Y
 
-:: 添加qt依赖包
-windeployqt %publish_path%\QtScrcpy.exe
+:: 添加qt依赖包，跳过未使用的插件，避免额外依赖被复制
+set windeploy_options=--no-translations --no-system-d3d-compiler --no-quick-import --no-opengl-sw --no-angle ^
+    --skip-plugin qgif --skip-plugin qicns --skip-plugin qico --skip-plugin qsvg --skip-plugin qtga ^
+    --skip-plugin qtiff --skip-plugin qwbmp --skip-plugin qwebp --skip-plugin qsvgicon
+windeployqt %windeploy_options% %publish_path%\QtScrcpy.exe
 
-:: 删除多余qt依赖包
-rmdir /s/q %publish_path%\iconengines
-rmdir /s/q %publish_path%\translations
+:: 再次清理可能被复制的冗余插件目录
+if exist %publish_path%\iconengines rmdir /s/q %publish_path%\iconengines
+if exist %publish_path%\translations rmdir /s/q %publish_path%\translations
+if exist %publish_path%\virtualkeyboard rmdir /s/q %publish_path%\virtualkeyboard
+if exist %publish_path%\printsupport rmdir /s/q %publish_path%\printsupport
+if exist %publish_path%\platforminputcontexts rmdir /s/q %publish_path%\platforminputcontexts
+if exist %publish_path%\bearer rmdir /s/q %publish_path%\bearer
 
-:: 截图功能需要qjpeg.dll
-del %publish_path%\imageformats\qgif.dll
-del %publish_path%\imageformats\qicns.dll
-del %publish_path%\imageformats\qico.dll
-::del %publish_path%\imageformats\qjpeg.dll
-del %publish_path%\imageformats\qsvg.dll
-del %publish_path%\imageformats\qtga.dll
-del %publish_path%\imageformats\qtiff.dll
-del %publish_path%\imageformats\qwbmp.dll
-del %publish_path%\imageformats\qwebp.dll
+:: 仅保留截图功能所需的 qjpeg 插件
+if exist %publish_path%\imageformats (
+    for %%f in (%publish_path%\imageformats\*.dll) do (
+        if /I not "%%~nxf"=="qjpeg.dll" del "%%~ff"
+    )
+)
+
+:: 删除未用到的 QtSvg 库和调试符号以减小体积
+if exist %publish_path%\Qt5Svg.dll del %publish_path%\Qt5Svg.dll
+if exist %publish_path%\Qt6Svg.dll del %publish_path%\Qt6Svg.dll
+for %%f in (%publish_path%\*.pdb) do del "%%~ff"
 
 echo=
 echo=

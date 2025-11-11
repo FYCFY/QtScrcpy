@@ -1,37 +1,71 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
 # 获取绝对路径，保证其他目录执行此脚本依然正确
 {
-cd $(dirname "$0")
-script_path=$(pwd)
-cd -
-} &> /dev/null # disable output
-# 设置当前目录，cd的目录影响接下来执行程序的工作目录
+    cd "$(dirname "$0")"
+    script_path=$(pwd)
+    cd -
+} &>/dev/null
+
 old_cd=$(pwd)
-cd $(dirname "$0")
+cd "$(dirname "$0")"
 
-echo
-echo
-echo ---------------------------------------------------------------
-echo pip install requirements
-echo ---------------------------------------------------------------
+app_name="QtScrcpy"
+app_path="$script_path/../../build/${app_name}.app"
+dmg_path="$script_path/../../build/${app_name}.dmg"
+fastboot_dest="$app_path/Contents/MacOS"
+fetch_fastboot_py="$script_path/../scripts/fetch_fastboot.py"
+python_bin=${PYTHON_BIN:-python3}
 
-pip install -r $script_path/package/requirements.txt
-if [ $? -ne 0 ] ;then
-    echo "pip install requirements failed"
+if ! command -v "$python_bin" >/dev/null 2>&1; then
+    if command -v python >/dev/null 2>&1; then
+        python_bin=python
+    else
+        echo "error: python interpreter not found" >&2
+        exit 1
+    fi
+fi
+
+if ! command -v hdiutil >/dev/null 2>&1; then
+    echo "error: hdiutil command is required to create DMG packages" >&2
+    exit 1
+fi
+
+if [ ! -d "$app_path" ]; then
+    echo "error: $app_path does not exist" >&2
     exit 1
 fi
 
 echo
 echo
 echo ---------------------------------------------------------------
-echo create package
+echo fetch fastboot binary
 echo ---------------------------------------------------------------
+"$python_bin" "$fetch_fastboot_py" --platform mac --dest "$fastboot_dest"
 
-python $script_path/package/package.py
-if [ $? -ne 0 ] ;then
-    echo "create package failed"
-    exit 1
+if [ -f "$dmg_path" ]; then
+    rm -f "$dmg_path"
 fi
 
-# 恢复当前目录
-cd $old_cd
+tmp_dir=$(mktemp -d)
+cleanup() {
+    rm -rf "$tmp_dir"
+}
+trap cleanup EXIT
+
+cp -R "$app_path" "$tmp_dir/"
+ln -s /Applications "$tmp_dir/Applications"
+
+pushd "$tmp_dir" >/dev/null
+hdiutil create -volname "$app_name" -srcfolder "$tmp_dir" -format UDZO -quiet -ov "$dmg_path"
+popd >/dev/null
+
+echo
+echo
+echo ---------------------------------------------------------------
+echo package created at $dmg_path
+echo ---------------------------------------------------------------
+
+cd "$old_cd"
 exit 0
