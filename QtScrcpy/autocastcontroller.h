@@ -3,6 +3,7 @@
 
 #include <QObject>
 #include <QHash>
+#include <QMap>
 #include <QSet>
 #include <QSize>
 #include <QTimer>
@@ -39,10 +40,21 @@ private:
     void cleanupVideoForm(const QString &serial);
     void ensureVideoForm(const QString &serial, const QSize &size);
     void updateActiveDeviceList(const QSet<QString> &serials);
+    void emitActiveDeviceSnapshot();
+    void emitStatusSnapshot();
     QMap<QString, QString> readAdbDeviceStatuses();
     QStringList collectDeviceInfo(const QString &serial);
+    QStringList collectFastbootInfo(const QString &serial);
+    enum class FastbootMode {
+        Bootloader,
+        Userspace
+    };
+    void refreshFastbootSnapshot();
+    FastbootMode detectFastbootMode(const QString &serial, const QString &transportHint) const;
     QString runAdbCommandSync(const QStringList &args, int timeoutMs = 3000) const;
+    QString runFastbootCommandSync(const QStringList &args, int timeoutMs = 3000) const;
     QString readDeviceProperty(const QString &serial, const QString &prop);
+    QString readFastbootVariable(const QString &serial, const QString &prop) const;
     quint16 resolveMaxSize() const;
     QString resolveRecordFormat() const;
     qsc::DeviceParams buildParams(const QString &serial);
@@ -51,6 +63,10 @@ private:
     QTimer m_pollTimer;
     QSet<QString> m_castingSerials;
     QHash<QString, VideoForm*> m_videoForms;
+    QSet<QString> m_lastAdbSerials;
+    QSet<QString> m_fastbootSerials;
+    QMap<QString, QString> m_lastAdbStatuses;
+    QMap<QString, QString> m_lastFastbootStatuses;
     UserBootConfig m_bootConfig;
     bool m_lastDeviceListEmpty = true;
 };

@@ -55,11 +55,18 @@ wrapper.
      the bundled copy).
    - `QTSCRCPY_SERVER_PATH` – absolute path to `scrcpy-server`.
    - `QTSCRCPY_CONFIG_PATH` – custom config location.
+   - `QTSCRCPY_FASTBOOT_PATH` – override for the `fastboot` binary if you prefer
+     a custom Platform Tools installation.
 
 Window geometry, FPS overlays, frameless mode, bitrate, etc. are read from
 `config/config.ini` and `userdata.ini`; edit those files to change defaults.
 Set `showToolbar=false` in `userdata.ini` if you want to hide the on-screen
 panel with Back/Home/Recent/Power shortcuts.
+
+Fastboot / fastbootd modes are also monitored automatically. When a device drops
+from `adb devices` but shows up in `fastboot devices`, the monitor replaces the
+ADB entry with live fastboot data (product, current slot, BL status) and marks
+the window as “Fastboot” or “Fastbootd”.
 
 ## Credits
 

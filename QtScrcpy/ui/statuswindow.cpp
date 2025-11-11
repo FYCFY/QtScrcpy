@@ -102,7 +102,7 @@ void StatusWindow::setActiveDevices(const QStringList &devices)
         }
         current.insert(serial);
         if (!m_deviceStatus.contains(serial)) {
-            m_deviceStatus.insert(serial, tr("ADB 在线"));
+            m_deviceStatus.insert(serial, tr("检测中..."));
         }
         if (!m_deviceInfo.contains(serial)) {
             m_deviceInfo.insert(serial, QStringList{tr("正在收集设备信息...")});

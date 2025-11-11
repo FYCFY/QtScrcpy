@@ -39,11 +39,17 @@ cmake --build build -j8
    - `QTSCRCPY_ADB_PATH`：自定义 adb 路径。
    - `QTSCRCPY_SERVER_PATH`：指定 `scrcpy-server` 位置。
    - `QTSCRCPY_CONFIG_PATH`：重定向配置目录。
+   - `QTSCRCPY_FASTBOOT_PATH`：为 `fastboot` 指定自定义路径（默认使用内置
+     Platform Tools 或系统 PATH 中的 `fastboot`）。
 
 若需调整比特率、最大分辨率、是否置顶、皮肤等，请直接编辑
 `config/config.ini` 与同目录下的 `userdata.ini`。如果想隐藏屏幕旁的功能
 按钮（返回 / Home / 最近任务 / 电源），可以把 `userdata.ini` 中的
 `showToolbar` 设置为 `false`。
+
+当设备从 ADB 模式切换到 fastboot/fastbootd 时，监控窗口会自动移除旧的 ADB
+条目，改为展示 fastboot 设备信息（产品代号、当前卡槽、BL 状态），并在状态
+栏中标记“Fastboot”或“Fastbootd”，保持输出始终为实时状态。
 
 ## 致谢
 

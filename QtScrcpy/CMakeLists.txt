@@ -178,6 +178,8 @@ set(QC_UTIL_SOURCES
     util/config.cpp
     util/adbpathresolver.h
     util/adbpathresolver.cpp
+    util/fastbootpathresolver.h
+    util/fastbootpathresolver.cpp
     util/mousetap/mousetap.h
     util/mousetap/mousetap.cpp
     util/serverpathresolver.h

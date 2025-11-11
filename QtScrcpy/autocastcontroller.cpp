@@ -11,6 +11,7 @@
 
 #include "serverpathresolver.h"
 #include "util/adbpathresolver.h"
+#include "util/fastbootpathresolver.h"
 #include "videoform.h"
 
 // Auto detection mirrors the behaviour from scrcpy_FYC/scrcpy.c (periodic adb polling
@@ -32,9 +33,9 @@ AutoCastController::AutoCastController(QObject *parent)
 
 void AutoCastController::start()
 {
-    qInfo() << "Auto-cast mode enabled. Monitoring ADB devices...";
+    qInfo() << "Auto-cast mode enabled. Monitoring ADB/Fastboot devices...";
     emit logMessage(tr("Auto-cast watcher started."));
-    emit logMessage(tr("Waiting for ADB devices..."));
+    emit logMessage(tr("Waiting for connected devices..."));
     emit activeDevicesChanged(QStringList{});
     m_lastDeviceListEmpty = true;
     m_pollTimer.start();
@@ -43,6 +44,7 @@ void AutoCastController::start()
 
 void AutoCastController::queryDevices()
 {
+    refreshFastbootSnapshot();
     if (m_adb.isRuning()) {
         return;
     }
@@ -82,7 +84,8 @@ void AutoCastController::handleAdbResult(qsc::AdbProcess::ADB_EXEC_RESULT result
     }
 
     updateActiveDeviceList(current);
-    emit deviceStatusChanged(readAdbDeviceStatuses());
+    m_lastAdbStatuses = readAdbDeviceStatuses();
+    emitStatusSnapshot();
 }
 
 void AutoCastController::startCasting(const QString &serial)
@@ -173,17 +176,42 @@ void AutoCastController::ensureVideoForm(const QString &serial, const QSize &siz
 
 void AutoCastController::updateActiveDeviceList(const QSet<QString> &serials)
 {
-    QStringList devices = serials.values();
+    m_lastAdbSerials = serials;
+    emitActiveDeviceSnapshot();
+}
+
+void AutoCastController::emitActiveDeviceSnapshot()
+{
+    QSet<QString> merged = m_lastAdbSerials;
+    merged.unite(m_fastbootSerials);
+
+    QStringList devices = merged.values();
     std::sort(devices.begin(), devices.end());
     emit activeDevicesChanged(devices);
 
     const bool emptyNow = devices.isEmpty();
     if (emptyNow && !m_lastDeviceListEmpty) {
-        emit logMessage(tr("Waiting for ADB devices..."));
+        emit logMessage(tr("Waiting for connected devices..."));
     } else if (!emptyNow && m_lastDeviceListEmpty) {
-        emit logMessage(tr("Detected %1 ADB device(s).").arg(devices.size()));
+        emit logMessage(tr("Detected %1 device(s).").arg(devices.size()));
     }
     m_lastDeviceListEmpty = emptyNow;
+}
+
+void AutoCastController::emitStatusSnapshot()
+{
+    QSet<QString> merged = m_lastAdbSerials;
+    merged.unite(m_fastbootSerials);
+
+    QMap<QString, QString> statuses;
+    for (const QString &serial : merged) {
+        if (m_lastFastbootStatuses.contains(serial)) {
+            statuses.insert(serial, m_lastFastbootStatuses.value(serial));
+        } else if (m_lastAdbStatuses.contains(serial)) {
+            statuses.insert(serial, m_lastAdbStatuses.value(serial));
+        }
+    }
+    emit deviceStatusChanged(statuses);
 }
 
 QStringList AutoCastController::collectDeviceInfo(const QString &serial)
@@ -220,6 +248,94 @@ QStringList AutoCastController::collectDeviceInfo(const QString &serial)
     return details;
 }
 
+QStringList AutoCastController::collectFastbootInfo(const QString &serial)
+{
+    auto normalize = [&](const QString &value) {
+        const QString trimmed = value.trimmed();
+        return trimmed.isEmpty() ? tr("未知") : trimmed;
+    };
+
+    QStringList details;
+    details << tr("设备代号: %1").arg(normalize(readFastbootVariable(serial, "product")));
+
+    QString slot = readFastbootVariable(serial, "current-slot");
+    if (slot.trimmed().isEmpty()) {
+        slot = tr("未分区");
+    }
+    details << tr("活动卡槽: %1").arg(normalize(slot));
+
+    const QString unlocked = readFastbootVariable(serial, "unlocked").trimmed().toLower();
+    QString blText;
+    if (unlocked == QStringLiteral("yes")) {
+        blText = QStringLiteral("unlocked");
+    } else if (unlocked == QStringLiteral("no")) {
+        blText = QStringLiteral("locked");
+    } else {
+        blText = tr("未知");
+    }
+    details << tr("BL 状态: %1").arg(blText);
+
+    return details;
+}
+
+void AutoCastController::refreshFastbootSnapshot()
+{
+    const QString output = runFastbootCommandSync(QStringList() << "devices");
+    QSet<QString> current;
+    QMap<QString, QString> statuses;
+
+    const QStringList lines = output.split(QRegularExpression("[\r\n]+"), Qt::SkipEmptyParts);
+    for (const QString &line : lines) {
+        const QString trimmed = line.trimmed();
+        if (trimmed.isEmpty() || trimmed.startsWith("finished", Qt::CaseInsensitive)) {
+            continue;
+        }
+        const QStringList parts = trimmed.split(QRegularExpression("\\s+"), Qt::SkipEmptyParts);
+        if (parts.isEmpty()) {
+            continue;
+        }
+        const QString serial = parts.first().trimmed();
+        if (serial.isEmpty() || serial.startsWith("*")) {
+            continue;
+        }
+        const QString transport = parts.size() >= 2 ? parts.at(1) : QString();
+        current.insert(serial);
+        const FastbootMode mode = detectFastbootMode(serial, transport);
+        statuses.insert(serial, mode == FastbootMode::Userspace ? tr("Fastbootd 模式") : tr("Fastboot 模式"));
+        emit deviceInfoReady(serial, collectFastbootInfo(serial));
+    }
+
+    m_fastbootSerials = current;
+    m_lastFastbootStatuses = statuses;
+    emitActiveDeviceSnapshot();
+    emitStatusSnapshot();
+}
+
+AutoCastController::FastbootMode AutoCastController::detectFastbootMode(const QString &serial, const QString &transportHint) const
+{
+    const QString hint = transportHint.trimmed().toLower();
+    if (hint.contains(QStringLiteral("fastbootd"))) {
+        return FastbootMode::Userspace;
+    }
+    if (hint.contains(QStringLiteral("fastboot"))) {
+        return FastbootMode::Bootloader;
+    }
+
+    const QString userspace = readFastbootVariable(serial, "is-userspace").trimmed().toLower();
+    if (userspace == QStringLiteral("yes") || userspace == QStringLiteral("1") || userspace == QStringLiteral("true")) {
+        return FastbootMode::Userspace;
+    }
+    if (userspace == QStringLiteral("no") || userspace == QStringLiteral("0") || userspace == QStringLiteral("false")) {
+        return FastbootMode::Bootloader;
+    }
+
+    const QString bootMode = readFastbootVariable(serial, "boot-mode").trimmed().toLower();
+    if (bootMode.contains(QStringLiteral("fastbootd")) || bootMode.contains(QStringLiteral("userspace"))) {
+        return FastbootMode::Userspace;
+    }
+    return FastbootMode::Bootloader;
+}
+
 QString AutoCastController::readDeviceProperty(const QString &serial, const QString &prop)
 {
     QStringList args;
@@ -252,6 +368,68 @@ QString AutoCastController::runAdbCommandSync(const QStringList &args, int timeo
         return {};
     }
     return QString::fromLocal8Bit(process.readAllStandardOutput()).trimmed();
+}
+
+QString AutoCastController::runFastbootCommandSync(const QStringList &args, int timeoutMs) const
+{
+    const QString fastboot = resolveFastbootExecutable();
+    if (fastboot.isEmpty()) {
+        return {};
+    }
+
+    QProcess process;
+    process.start(fastboot, args);
+    if (!process.waitForStarted(timeoutMs)) {
+        qWarning() << "AutoCastController: fastboot command start timeout" << fastboot << args;
+        process.kill();
+        process.waitForFinished();
+        return {};
+    }
+    if (!process.waitForFinished(timeoutMs)) {
+        qWarning() << "AutoCastController: fastboot command timeout" << fastboot << args;
+        process.kill();
+        process.waitForFinished();
+        return {};
+    }
+    QString stdOut = QString::fromLocal8Bit(process.readAllStandardOutput());
+    QString stdErr = QString::fromLocal8Bit(process.readAllStandardError());
+    if (!stdErr.isEmpty()) {
+        if (!stdOut.isEmpty()) {
+            stdOut.append('\n');
+        }
+        stdOut.append(stdErr);
+    }
+    return stdOut.trimmed();
+}
+
+QString AutoCastController::readFastbootVariable(const QString &serial, const QString &prop) const
+{
+    QStringList args;
+    if (!serial.isEmpty()) {
+        args << "-s" << serial;
+    }
+    args << "getvar" << prop;
+    const QString output = runFastbootCommandSync(args);
+    if (output.isEmpty()) {
+        return {};
+    }
+
+    const QStringList lines = output.split(QRegularExpression("[\r\n]+"), Qt::SkipEmptyParts);
+    for (QString line : lines) {
+        QString trimmed = line.trimmed();
+        if (trimmed.startsWith(QStringLiteral("(bootloader)"), Qt::CaseInsensitive)) {
+            trimmed = trimmed.mid(QStringLiteral("(bootloader)").size()).trimmed();
+        }
+        const int colon = trimmed.indexOf(':');
+        if (colon < 0) {
+            continue;
+        }
+        const QString key = trimmed.left(colon).trimmed();
+        if (key.compare(prop, Qt::CaseInsensitive) == 0) {
+            return trimmed.mid(colon + 1).trimmed();
+        }
+    }
+    return {};
 }
 
 QMap<QString, QString> AutoCastController::readAdbDeviceStatuses()

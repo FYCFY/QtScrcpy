@@ -2,6 +2,7 @@ import dmgbuild
 import os
 import json
 import sys
+import subprocess
 
 current_file_path = os.path.dirname(os.path.realpath(__file__))
 dmg_settings_path = '%s/dmg-settings.json' % current_file_path
@@ -9,6 +10,7 @@ dmg_background_img = '%s/dmg-background.jpg' % current_file_path
 app_path = '%s/../../build/QtScrcpy.app' % current_file_path
 dmg_path = '%s/../../build/QtScrcpy.dmg' % current_file_path
 app_name = 'QtScrcpy'
+fetch_fastboot_script = os.path.abspath(os.path.join(current_file_path, '../../scripts/fetch_fastboot.py'))
 
 def console_print(msg):
     print(msg)
@@ -45,6 +47,12 @@ def generate_dmg_info():
 
 if __name__ == '__main__':
     console_print('generate dmg info')
+    console_print('fetch fastboot binary')
+    dest_dir = os.path.join(app_path, 'Contents', 'MacOS')
+    ret = subprocess.call([sys.executable, fetch_fastboot_script, '--platform', 'mac', '--dest', dest_dir])
+    if ret != 0:
+        console_print('failed to fetch fastboot binary')
+        sys.exit(ret)
     generate_dmg_info()
     console_print('build dmg: %s' % dmg_path)
     dmgbuild.build_dmg(dmg_path, app_name, dmg_settings_path)

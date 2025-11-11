@@ -92,6 +92,14 @@ del %publish_path%\imageformats\qtiff.dll
 del %publish_path%\imageformats\qwbmp.dll
 del %publish_path%\imageformats\qwebp.dll
 
+echo=
+echo=
+echo ---------------------------------------------------------------
+echo fetch official fastboot
+echo ---------------------------------------------------------------
+python "%script_path%\..\scripts\fetch_fastboot.py" --platform win --dest "%publish_path%"
+if %errorlevel% neq 0 goto return
+
 :: 删除vc_redist，自己copy vcruntime dll
 if /i %cpu_mode% == x86 (
     del %publish_path%\vc_redist.x86.exe
