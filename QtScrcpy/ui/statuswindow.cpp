@@ -1,12 +1,8 @@
 #include "statuswindow.h"
 
-#include <QAbstractItemView>
 #include <QApplication>
 #include <QFrame>
-#include <QGraphicsBlurEffect>
 #include <QFont>
-#include <QLabel>
-#include <QListWidget>
 #include <QPlainTextEdit>
 #include <QTextOption>
 #include <QMouseEvent>
@@ -23,35 +19,30 @@ StatusWindow::StatusWindow(QWidget *parent) : QWidget(parent)
     surface->setObjectName(QStringLiteral("glassCard"));
     surface->setStyleSheet(R"(
         QWidget#glassCard {
-            background: rgba(20, 20, 20, 180);
-            border-radius: 16px;
-            border: 1px solid rgba(255, 255, 255, 40);
+            background: rgba(25, 25, 25, 210);
+            border-radius: 14px;
+            border: 1px solid rgba(255, 255, 255, 35);
         }
-        QLabel, QListWidget, QPlainTextEdit {
-            color: #F5F5F7;
-        }
-        QListWidget, QPlainTextEdit {
+        QPlainTextEdit {
+            color: #F8F8FA;
             background: transparent;
             border: none;
         }
+        QLabel {
+            color: #F8F8FA;
+        }
     )");
-    auto *blur = new QGraphicsBlurEffect(surface);
-    blur->setBlurRadius(25);
-    surface->setGraphicsEffect(blur);
 
     auto *cardLayout = new QVBoxLayout(surface);
     cardLayout->setContentsMargins(16, 16, 16, 16);
-    cardLayout->setSpacing(6);
+    cardLayout->setSpacing(8);
 
-    m_summaryLabel = new QLabel(tr("设备监控"), surface);
-    QFont summaryFont = m_summaryLabel->font();
-    summaryFont.setPointSize(summaryFont.pointSize() + 2);
-    m_summaryLabel->setFont(summaryFont);
-    m_deviceList = new QListWidget(surface);
-    m_deviceList->setSelectionMode(QAbstractItemView::NoSelection);
-    QFont listFont = m_deviceList->font();
-    listFont.setPointSize(listFont.pointSize() + 1);
-    m_deviceList->setFont(listFont);
+    QLabel *title = new QLabel(tr("设备信息"), surface);
+    QFont titleFont = title->font();
+    titleFont.setPointSize(titleFont.pointSize() + 2);
+    titleFont.setBold(true);
+    title->setFont(titleFont);
+    cardLayout->addWidget(title);
 
     m_logView = new QPlainTextEdit(surface);
     m_logView->setReadOnly(true);
@@ -60,12 +51,7 @@ StatusWindow::StatusWindow(QWidget *parent) : QWidget(parent)
     m_logView->setFont(infoFont);
     m_logView->setWordWrapMode(QTextOption::WordWrap);
     m_logView->setFrameShape(QFrame::NoFrame);
-
-    cardLayout->addWidget(m_summaryLabel);
-    cardLayout->addWidget(new QLabel(tr("设备列表"), surface));
-    cardLayout->addWidget(m_deviceList, 1);
-    cardLayout->addWidget(new QLabel(tr("设备信息"), surface));
-    cardLayout->addWidget(m_logView, 2);
+    cardLayout->addWidget(m_logView, 1);
 
     auto *rootLayout = new QVBoxLayout(this);
     rootLayout->setContentsMargins(0, 0, 0, 0);
@@ -75,19 +61,12 @@ StatusWindow::StatusWindow(QWidget *parent) : QWidget(parent)
 
 void StatusWindow::setActiveDevices(const QStringList &devices)
 {
-    m_currentSerials = devices;
-    rebuildDeviceList();
-
+    QSet<QString> current;
     for (const QString &serial : devices) {
-        if (!serial.isEmpty()) {
+        current.insert(serial);
+        if (!m_deviceStatus.contains(serial)) {
             m_deviceStatus.insert(serial, tr("ADB 在线"));
         }
-    }
-
-    // 清除已断开设备的缓存信息
-    QSet<QString> current;
-    for (const QString &dev : devices) {
-        current.insert(dev);
     }
     QList<QString> removed;
     for (auto it = m_deviceInfo.begin(); it != m_deviceInfo.end();) {
@@ -107,7 +86,6 @@ void StatusWindow::setActiveDevices(const QStringList &devices)
 void StatusWindow::setDeviceStatuses(const QMap<QString, QString> &statuses)
 {
     m_deviceStatus = statuses;
-    rebuildDeviceList();
     rebuildInfoPanel();
 }
 
@@ -134,15 +112,6 @@ void StatusWindow::rebuildInfoPanel()
         blocks << section.join('\n');
     }
     m_logView->setPlainText(blocks.join("\n\n"));
-}
-
-void StatusWindow::rebuildDeviceList()
-{
-    m_deviceList->clear();
-    for (const QString &serial : m_currentSerials) {
-        const QString status = m_deviceStatus.value(serial, tr("状态未知"));
-        m_deviceList->addItem(QStringLiteral("%1  [%2]").arg(serial, status));
-    }
 }
 
 void StatusWindow::mousePressEvent(QMouseEvent *event)
