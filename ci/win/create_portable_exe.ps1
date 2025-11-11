@@ -162,6 +162,8 @@ internal static class PortableLauncher
     if (Test-Path $stubExe) { Remove-Item $stubExe -Force }
 
     $isDesktopPwsh = $PSVersionTable.PSEdition -eq 'Desktop'
+    $stubCompiled = $false
+
     if ($isDesktopPwsh) {
         Add-Type -TypeDefinition $stubSource `
             -Language CSharp `
@@ -169,13 +171,30 @@ internal static class PortableLauncher
             -OutputType ConsoleApplication `
             -ReferencedAssemblies $references `
             -CompilerOptions "/optimize+"
+        $stubCompiled = $true
     }
     else {
         $stubSourcePath = Join-Path $tmpRoot "PortableLauncher.cs"
         Set-Content -Path $stubSourcePath -Value $stubSource -Encoding UTF8
 
-        $projectPath = Join-Path $tmpRoot "PortableLauncher.csproj"
-        $projectContent = @"
+        $cscCandidates = @(
+            Join-Path $env:WINDIR "Microsoft.NET\\Framework64\\v4.0.30319\\csc.exe",
+            Join-Path $env:WINDIR "Microsoft.NET\\Framework\\v4.0.30319\\csc.exe"
+        )
+        $cscExe = $cscCandidates | Where-Object { $_ -and (Test-Path $_) } | Select-Object -First 1
+
+        if ($cscExe) {
+            $referenceArgs = $references | ForEach-Object { "/r:`"$_`"" }
+            $compileArgs = @("/nologo", "/target:exe", "/out:$stubExe", "/optimize+") + $referenceArgs + @($stubSourcePath)
+            & $cscExe @compileArgs | Write-Host
+            if ($LASTEXITCODE -ne 0) {
+                throw "csc.exe failed to compile launcher stub"
+            }
+            $stubCompiled = $true
+        }
+        if (-not $stubCompiled) {
+            $projectPath = Join-Path $tmpRoot "PortableLauncher.csproj"
+            $projectContent = @"
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -186,28 +205,34 @@ internal static class PortableLauncher
   </PropertyGroup>
 </Project>
 "@
-        Set-Content -Path $projectPath -Value $projectContent -Encoding UTF8
+            Set-Content -Path $projectPath -Value $projectContent -Encoding UTF8
 
-        $publishDir = Join-Path $tmpRoot "publish"
-        if (Test-Path $publishDir) { Remove-Item $publishDir -Recurse -Force }
+            $publishDir = Join-Path $tmpRoot "publish"
+            if (Test-Path $publishDir) { Remove-Item $publishDir -Recurse -Force }
 
-        $dotnet = Get-Command dotnet -ErrorAction SilentlyContinue
-        if (-not $dotnet) {
-            throw "Unable to locate 'dotnet'. Ensure .NET SDK is installed on the build agent."
+            $dotnet = Get-Command dotnet -ErrorAction SilentlyContinue
+            if (-not $dotnet) {
+                throw "Unable to locate 'dotnet'. Ensure .NET SDK is installed on the build agent."
+            }
+
+            dotnet publish $projectPath -c Release -o $publishDir | Write-Host
+
+            $publishedExe = Join-Path $publishDir "launcher.exe"
+            if (-not (Test-Path $publishedExe)) {
+                throw "dotnet publish did not produce launcher.exe"
+            }
+
+            Get-ChildItem -Path $publishDir | ForEach-Object {
+                Copy-Item -Path $_.FullName -Destination $outputDir -Recurse -Force
+            }
+
+            $stubExe = $publishedExe
+            $stubCompiled = $true
         }
+    }
 
-        dotnet publish $projectPath -c Release -o $publishDir | Write-Host
-
-        $publishedExe = Join-Path $publishDir "launcher.exe"
-        if (-not (Test-Path $publishedExe)) {
-            throw "dotnet publish did not produce launcher.exe"
-        }
-
-        Get-ChildItem -Path $publishDir | ForEach-Object {
-            Copy-Item -Path $_.FullName -Destination $outputDir -Recurse -Force
-        }
-
-        $stubExe = $publishedExe
+    if (-not $stubCompiled) {
+        throw "Failed to create launcher stub."
     }
 
     Copy-Item $stubExe $outputPath -Force
