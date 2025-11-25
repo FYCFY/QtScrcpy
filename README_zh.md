@@ -26,7 +26,9 @@ cmake -S QtScrcpy -B build -DCMAKE_BUILD_TYPE=Release \
 cmake --build build -j8
 ```
 
-也可以参考 `ci/linux|mac|win` 目录中的打包脚本。
+也可以参考 `ci/linux|mac|win` 目录中的打包脚本。GitHub Actions 的 Windows
+工作流现在会额外输出一个自解压的 `QtScrcpy-win-<arch>-<version>.exe`，双击后
+会在临时目录解压并自动启动 `QtScrcpy.exe`，无需安装即可使用。
 
 ## 使用方式
 
