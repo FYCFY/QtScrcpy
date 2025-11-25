@@ -38,7 +38,10 @@ cmake --build build -j8
 ```
 
 Platform scripts still exist under `ci/<platform>/build_for_*.sh` if you prefer a
-wrapper.
+wrapper. The Windows GitHub workflow now emits a portable
+`QtScrcpy-win-<arch>-<version>.exe` self-extracting launcher; double-clicking it
+will unpack to a temporary directory and run `QtScrcpy.exe` automatically (no
+installer required).
 
 ## Usage
 
