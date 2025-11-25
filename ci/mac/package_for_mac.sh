@@ -11,13 +11,20 @@ cd $(dirname "$0")
 echo
 echo
 echo ---------------------------------------------------------------
-echo pip install requirements
+echo prepare python environment
 echo ---------------------------------------------------------------
 
-pip install -r $script_path/package/requirements.txt
-if [ $? -ne 0 ] ;then
-    echo "pip install requirements failed"
-    exit 1
+python_bin=${PYTHON_BIN:-python3}
+if ! command -v "$python_bin" >/dev/null 2>&1; then
+    python_bin=python
+fi
+
+if ! "$python_bin" -c "import dmgbuild" >/dev/null 2>&1; then
+    "$python_bin" -m pip install --disable-pip-version-check --no-cache-dir 'dmgbuild==1.4.2'
+    if [ $? -ne 0 ] ;then
+        echo "failed to install dmgbuild"
+        exit 1
+    fi
 fi
 
 echo
@@ -26,7 +33,7 @@ echo ---------------------------------------------------------------
 echo create package
 echo ---------------------------------------------------------------
 
-python $script_path/package/package.py
+"$python_bin" $script_path/package/package.py
 if [ $? -ne 0 ] ;then
     echo "create package failed"
     exit 1

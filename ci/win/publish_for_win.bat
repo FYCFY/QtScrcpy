@@ -80,6 +80,11 @@ windeployqt %publish_path%\QtScrcpy.exe
 :: 删除多余qt依赖包
 rmdir /s/q %publish_path%\iconengines
 rmdir /s/q %publish_path%\translations
+rmdir /s/q "%publish_path%qml"
+
+for %%F in (Qt5Qml.dll Qt5QmlModels.dll Qt5QmlWorkerScript.dll Qt5QmlLocalStorage.dll Qt5Quick.dll Qt5QuickWidgets.dll Qt5QuickParticles.dll Qt5QuickControls2.dll Qt5QuickTemplates2.dll Qt5VirtualKeyboard.dll Qt5Svg.dll) do (
+    if exist "%publish_path%%%F" del /q "%publish_path%%%F"
+)
 
 :: 截图功能需要qjpeg.dll
 del %publish_path%\imageformats\qgif.dll
