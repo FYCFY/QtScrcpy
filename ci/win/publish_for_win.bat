@@ -92,6 +92,16 @@ del %publish_path%\imageformats\qtiff.dll
 del %publish_path%\imageformats\qwbmp.dll
 del %publish_path%\imageformats\qwebp.dll
 
+:: 额外精简无用Qt模块
+if exist %publish_path%\Qt5Qml.dll del %publish_path%\Qt5Qml.dll
+if exist %publish_path%\Qt5QmlModels.dll del %publish_path%\Qt5QmlModels.dll
+if exist %publish_path%\Qt5QmlWorkerScript.dll del %publish_path%\Qt5QmlWorkerScript.dll
+if exist %publish_path%\Qt5Quick.dll del %publish_path%\Qt5Quick.dll
+if exist %publish_path%\Qt5QuickWidgets.dll del %publish_path%\Qt5QuickWidgets.dll
+if exist %publish_path%\Qt5QuickShapes.dll del %publish_path%\Qt5QuickShapes.dll
+if exist %publish_path%\Qt5Svg.dll del %publish_path%\Qt5Svg.dll
+if exist %publish_path%\qml\ rmdir /s/q %publish_path%\qml\
+
 echo=
 echo=
 echo ---------------------------------------------------------------
